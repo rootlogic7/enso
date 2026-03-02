@@ -11,10 +11,21 @@
     options = "--delete-older-than 7d";
   };
 
-  # 🌍 Zeitzone und Sprache (Deutschland)
+  # Zeitzone und Sprache (Deutschland)
   time.timeZone = "Europe/Berlin";
   i18n.defaultLocale = "de_DE.UTF-8";
-  console.keyMap = "de";
+
+  # Globales Tastaturlayout
+  services.xserver.xkb = {
+    layout = "de";
+    variant = "nodeadkeys";
+  };
+  console.useXkbConfig = true;
+
+  environment.sessionVariables = {
+    XKB_DEFAULT_LAYOUT = "de";
+    XKB_DEFAULT_VARIANT = "nodeadkeys";
+  };
 
   # 👤 Der Hauptnutzer: haku
   users.users.haku = {
