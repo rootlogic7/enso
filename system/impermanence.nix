@@ -34,6 +34,11 @@
         "enso"
         ".ssh"
         ".config/sops"
+
+        ".gnupg"           # Deine GPG-Schlüssel
+        ".password-store"  # Der eigentliche 'pass' Tresor
+        ".mozilla"         # Firefox Profil & Addons
+        ".config/mozilla"
       ];
     };  
   };

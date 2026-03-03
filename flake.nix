@@ -29,12 +29,6 @@
       inputs.nixpkgs.follows = "nixpkgs";
     };
 
-    # greetd display manager and greeter
-    sysc-greet = {
-      url = "github:Nomadcxx/sysc-greet";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
-
     # sops
     sops-nix = {
       url = "github:Mic92/sops-nix";
@@ -45,7 +39,7 @@
   outputs = { self, nixpkgs, home-manager, disko, impermanence, nixos-hardware, nixvim, sops-nix, ... }@inputs: {
     
     nixosConfigurations = {
-      # 💻 Host: kaze (ThinkPad T470)
+      # Host: kaze (ThinkPad T470)
       kaze = nixpkgs.lib.nixosSystem {
         system = "x86_64-linux";
         # Wir geben alle Inputs an die Module weiter, damit wir sie überall nutzen können

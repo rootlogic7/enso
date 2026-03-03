@@ -55,6 +55,35 @@
       };
     };
 
+    # GPG konfigurieren
+    gpg.enable = true;
+
+    # ass konfigurieren
+    password-store = {
+      enable = true;
+      package = pkgs.pass.withExtensions (exts: [ exts.pass-otp ]); # Optional: OTP-Support
+    };
+
+    # Browserpass (Die Brücke zwischen 'pass' und Firefox)
+    browserpass = {
+      enable = true;
+      browsers = [ "firefox" ];
+    };
+
+    # Nushell deklarativ konfigurieren
+    nushell = {
+      enable = true;
+      # Das hier setzt den GPG_TTY automatisch bei jedem Start der Shell
+      environmentVariables = {
+        GPG_TTY = "(tty)";
+      };
+    };
+  };
+
+  # Den GPG-Agent als Service starten (fragt nach dem Passwort zum Entschlüsseln)
+  services.gpg-agent = {
+    enable = true;
+    pinentryPackage = pkgs.pinentry-gnome3; # Eine saubere GUI-Passwortabfrage für Wayland
   };
 
   imports = [

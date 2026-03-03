@@ -10,7 +10,20 @@
   };
 
   # 🚀 Bootloader Konfiguration
-  boot = { 
+  boot = {
+    # Dem Kernel einen Maulkorb verpassen, damit Plymouth glänzen kann
+    kernelParams = [ 
+      "quiet" 
+      "splash" 
+      "loglevel=3" 
+      "rd.systemd.show_status=false" 
+      "rd.udev.log_level=3" 
+      "udev.log_priority=3" 
+    ];
+    # Konsolen-Logs während des Bootens komplett verstecken
+    consoleLogLevel = 0;
+    initrd.verbose = false;
+
     loader = {
       systemd-boot.enable = true;
       systemd-boot.configurationLimit = 10;
