@@ -22,6 +22,35 @@
       "$terminal" = "foot";
       "$menu" = "fuzzel";
 
+      # 🎨 NEU: Das visuelle Ricing (Hier greifen die Catppuccin-Farben!)
+      general = {
+        gaps_in = 5;
+        gaps_out = 10;
+        border_size = 2;
+        
+        # Hier nutzen wir das Catppuccin $mauve (Lila) und mischen es mit $sapphire
+        "col.active_border" = "$mauve $sapphire 45deg"; 
+        "col.inactive_border" = "$surface0"; # Ein dunkles Grau für inaktive Fenster
+        
+        layout = "dwindle";
+      };
+
+      decoration = {
+        rounding = 8;
+        
+        blur = {
+          enabled = true;
+          size = 3;
+          passes = 1;
+        };
+      };
+
+      misc = {
+        # Deaktiviert das Standard-Hyprland-Maskottchen
+        disable_hyprland_logo = true;
+        force_default_wallpaper = 0;
+      };
+
       # 4. Tastenkürzel (Binds)
       bind = [
         # Programme starten
