@@ -52,7 +52,7 @@
     # GPG konfigurieren
     gpg.enable = true;
 
-    # ass konfigurieren
+    # pass konfigurieren
     password-store = {
       enable = true;
       package = pkgs.pass.withExtensions (exts: [ exts.pass-otp ]); # Optional: OTP-Support

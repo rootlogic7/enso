@@ -8,7 +8,7 @@
     settings = {
       
       # 1. Monitore
-      monitor = ",preferred,auto,1";
+      monitor = "eDP-1,preferred,auto,1";
 
       # 2. Tastatur
       input = {
@@ -21,6 +21,10 @@
       "$mod" = "SUPER";
       "$terminal" = "foot";
       "$menu" = "fuzzel";
+
+      exec-once = [
+        "${pkgs.swaybg}/bin/swaybg -i ${./wallpaper.jpg} -m fill"
+      ];
 
       # 🎨 NEU: Das visuelle Ricing (Hier greifen die Catppuccin-Farben!)
       general = {

@@ -11,6 +11,7 @@
 
   # 🚀 Bootloader Konfiguration
   boot = {
+    initrd.kernelModules = [ "i915" ];
     # Dem Kernel einen Maulkorb verpassen, damit Plymouth glänzen kann
     kernelParams = [ 
       "quiet" 
