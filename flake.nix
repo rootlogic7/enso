@@ -1,5 +1,5 @@
 {
-  description = "Enso - NixOS Flake Configuration";
+  description = "Horizon";
 
   inputs = {
     # Wir nutzen den Unstable-Branch für modernste Pakete (Hyprland, Rust-Tools etc.)
@@ -48,45 +48,16 @@
         specialArgs = { inherit inputs; };
         
         modules = [
-          # Hardware-spezifische Module
-          nixos-hardware.nixosModules.lenovo-thinkpad-t470s
-          ./hosts/nova/disko.nix
-          disko.nixosModules.disko
+          # Hardware-Profil
+          inputs.nixos-hardware.nixosModules.lenovo-thinkpad-t470s
           
-          # Das Impermanence Modul systemweit laden
-          impermanence.nixosModules.impermanence
-
-	  # sops-nix Modul systemweit laden
-	  sops-nix.nixosModules.sops
-
-          # Die Hauptkonfiguration für diesen Host
+          # Globale Nix-Community Module
+          inputs.impermanence.nixosModules.impermanence
+          inputs.sops-nix.nixosModules.sops
+          
+          # Der Einsprungpunkt für den Host "nova". 
+          # Ab hier übernimmt default.nix!
           ./hosts/nova/default.nix
-          
-          # Systemweite Kern-Konfigurationen
-          ./system/core.nix
-          ./system/network.nix
-          ./system/impermanence.nix
-          ./system/security.nix
-
-          # Display- und Grafik-Konfiguration
-          ./system/display.nix
-
-          # Home-Manager als NixOS-Modul einbinden
-          home-manager.nixosModules.home-manager
-          {
-            home-manager.useGlobalPkgs = true;
-            home-manager.useUserPackages = true;
-            home-manager.extraSpecialArgs = { inherit inputs; };
-	    home-manager.backupFileExtension = "backup";
-
-            # Wir binden das Catppuccin-Modul direkt in deinen User ein
-            home-manager.users.haku = {
-              imports = [
-                inputs.catppuccin.homeModules.catppuccin
-                ./home/haku.nix
-              ];
-            };
-          }
         ];
       };
       

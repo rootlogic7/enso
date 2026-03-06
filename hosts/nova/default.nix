@@ -1,12 +1,40 @@
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, inputs, ... }:
 
 {
+  #System
   system.stateVersion = "25.11";
 
-  imports = [ ./hardware-configuration.nix ];
+  # Imports
+  imports = [ 
+    ./hardware-configuration.nix
+    ./disko.nix
+    inputs.disko.nixosModules.disko
+    
+    # Unsere gebündelten System-Module
+    ../../system/default.nix
 
+    # Home-Manager direkt im Host einbinden
+    inputs.home-manager.nixosModules.home-manager
+  ];
+
+  # Networking
   networking = {
     hostName = "nova";
+  };
+
+  # Home Manager  
+  home-manager = {
+    useGlobalPkgs = true;
+    useUserPackages = true;
+    extraSpecialArgs = { inherit inputs; };
+    backupFileExtension = "backup";
+    
+    users.haku = {
+      imports = [
+        inputs.catppuccin.homeModules.catppuccin
+        ../../home/haku.nix
+      ];
+    };
   };
 
   # Bootloader Konfiguration
@@ -42,7 +70,7 @@
       ];
     };
 
-    # odernes Impermanence: systemd in der initrd
+    # modernes Impermanence: systemd in der initrd
     initrd.systemd.enable = true;
 
     # Der systemd-Service für den Btrfs-Rollback
@@ -50,7 +78,7 @@
       description = "Rollback Btrfs root subvolume to a pristine state";
       wantedBy = [ "initrd.target" ];
     
-      # 🔗 Die entscheidenden Abhängigkeiten:
+      # Die entscheidenden Abhängigkeiten:
       # 1. Muss NACH der LUKS-Entschlüsselung laufen (cryptroot ist der Name aus disko.nix)
       after = [ "systemd-cryptsetup@cryptroot.service" ];
       # 2. Muss VOR dem eigentlichen Mounten von / laufen
@@ -78,8 +106,8 @@
       '';
     };
   };
-  # 👆 Hardware-Spezifische Sicherheit (ThinkPad T470 Fingerprint)
-  services.fprintd.enable = true;
+  # Hardware-Spezifische Sicherheit (ThinkPad T470 Fingerprint)
+  # services.fprintd.enable = true;
   
   # PAM so konfigurieren, dass sudo und su den Fingerabdruck akzeptieren
   #security.pam.services.sudo.fprintAuth = true;
