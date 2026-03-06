@@ -42,6 +42,8 @@
 
         ".local/share/nushell"
         ".local/share/zoxide"
+
+        ".local/share/keyrings"
       ];
 
       files = [

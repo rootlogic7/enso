@@ -61,7 +61,10 @@
   # Den GPG-Agent als Service starten (fragt nach dem Passwort zum Entschlüsseln)
   services.gpg-agent = {
     enable = true;
-    pinentry.package = pkgs.pinentry-gnome3; # Eine saubere GUI-Passwortabfrage für Wayland
+    pinentry.package = pkgs.pinentry-rofi;
+    # NEU: Passwort für 8 Stunden (28800 Sekunden) im Cache behalten
+    defaultCacheTtl = 28800;
+    maxCacheTtl = 28800;
   };
 
   imports = [

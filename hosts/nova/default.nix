@@ -9,18 +9,16 @@
     hostName = "nova";
   };
 
-  # 🚀 Bootloader Konfiguration
+  # Bootloader Konfiguration
   boot = {
     initrd.kernelModules = [ "i915" ];
     # Dem Kernel einen Maulkorb verpassen, damit Plymouth glänzen kann
     kernelParams = [ 
-      "quiet" 
-#      "splash" 
-      "loglevel=3" 
-#      "rd.systemd.show_status=false" 
+      "quiet"
+      "loglevel=3"
       "systemd.show_status=auto"
-      "rd.udev.log_level=3" 
-      "udev.log_priority=3" 
+      "rd.udev.log_level=3"
+      "udev.log_priority=3"
     ];
     # Konsolen-Logs während des Bootens komplett verstecken
     consoleLogLevel = 0;
@@ -80,4 +78,10 @@
       '';
     };
   };
+  # 👆 Hardware-Spezifische Sicherheit (ThinkPad T470 Fingerprint)
+  services.fprintd.enable = true;
+  
+  # PAM so konfigurieren, dass sudo und su den Fingerabdruck akzeptieren
+  #security.pam.services.sudo.fprintAuth = true;
+  #security.pam.services.su.fprintAuth = true;
 }

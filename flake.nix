@@ -66,6 +66,7 @@
           ./system/core.nix
           ./system/network.nix
           ./system/impermanence.nix
+          ./system/security.nix
 
           # Display- und Grafik-Konfiguration
           ./system/display.nix

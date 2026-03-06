@@ -16,9 +16,6 @@
     };
   };
 
-  # Polkit aktivieren
-  security.polkit.enable = true;
-
   # Schriftarten (Fonts)
   fonts.packages = with pkgs; [
     nerd-fonts.jetbrains-mono
