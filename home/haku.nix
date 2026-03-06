@@ -20,21 +20,10 @@
       # File Explorer
       yazi
 
-      # Rust-basierte CLI-Tools (Die modernen Alternativen)
-      eza      # Moderner ls-Ersatz
-      zoxide   # Smarter cd-Ersatz
-      ripgrep  # Extrem schnelles grep
-      fd       # Schnelleres find
-      bottom   # Moderner Systemmonitor (htop-Ersatz)
-
       # Web & Development
       firefox
       wget
       curl
-
-      starship
-      fastfetch
-      zoxide
     ];
   };
 
@@ -67,49 +56,8 @@
       enable = true;
       browsers = [ "firefox" ];
     };
-
-    # Nushell deklarativ konfigurieren
-    nushell = {
-      enable = true;
-      # Hier kannst du Aliase definieren, die eza nutzen
-      shellAliases = {
-        ll = "ls -l";
-        la = "ls -a";
-        ls = "eza";
-        tree = "eza --tree";
-      };
-      extraConfig = ''
-        $env.config = {
-          show_banner: false,
-        }
-
-        # zoxide
-        source-env ~(zoxide init nushell | lines | where ($it | str contains "env") | str join "\n" | save -f ~/.cache/zoxide_env.nu; print "")
-
-        # Starship direkt initialisieren
-        # starship init nu | save -f ~/.cache/starship_init.nu
-        # source ~/.cache/starship_init.nu
-
-        # Fastfetch beim Start
-        fastfetch
-      '';
-
-      # environmentVariables = {
-      #   GPG_TTY = "(tty)";
-      # };
-    };
-    
-    zoxide = {
-      enable = true;
-      enableNushellIntegration = true;
-    };
-
-    # Starship für ein schönes Prompt
-    starship = {
-      enable = true;
-      enableNushellIntegration = true;
-    };
   };
+
   # Den GPG-Agent als Service starten (fragt nach dem Passwort zum Entschlüsseln)
   services.gpg-agent = {
     enable = true;
@@ -117,7 +65,7 @@
   };
 
   imports = [
-  #   ./shell/default.nix
+    ./shell/default.nix
     ./desktop/default.nix
     ./theme.nix
   #   ./programs/default.nix

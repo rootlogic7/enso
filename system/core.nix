@@ -57,11 +57,11 @@
     # === -> sops-nix kümmert sich nun um das passwort für haku ===
   };
 
-  programs.bash.interactiveShellInit = ''
-    if [[ $TERM != "dumb" && -z "''${BASH_EXECUTION_STRING}" ]]; then
-      exec nu
-    fi
-  '';
+  #programs.bash.interactiveShellInit = ''
+  #  if [[ $TERM != "dumb" && -z "''${BASH_EXECUTION_STRING}" ]]; then
+  #    exec nu
+  #  fi
+  #'';
 
   # Damit Nushell als Login-Shell funktioniert, muss sie systemweit aktiviert sein
   environment.shells = [ pkgs.nushell ];

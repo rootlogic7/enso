@@ -40,9 +40,12 @@
         ".mozilla"         # Firefox Profil & Addons
         ".config/mozilla"
 
-        ".config/nushell"
+        ".local/share/nushell"
         ".local/share/zoxide"
-        # ".cache/zoxide"
+      ];
+
+      files = [
+        ".config/nushell/history.txt"
       ];
     };  
   };
