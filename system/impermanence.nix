@@ -44,6 +44,9 @@
         ".local/share/zoxide"
 
         ".local/share/keyrings"
+
+        ".local/state/nvim"
+        ".local/share/nvim"
       ];
 
       files = [

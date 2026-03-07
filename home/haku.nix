@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, inputs, ... }:
 
 {
   # Grundlegende Home-Manager-Einstellungen
@@ -68,9 +68,11 @@
   };
 
   imports = [
+    inputs.nixvim.homeModules.nixvim
     ./shell/default.nix
     ./desktop/default.nix
     ./theme.nix
+    ./programs/nixvim.nix
   #   ./programs/default.nix
   ];
 }
