@@ -43,13 +43,13 @@
     # Dem Kernel einen Maulkorb verpassen, damit Plymouth glänzen kann
     kernelParams = [ 
       "quiet"
-      "loglevel=3"
+      #"loglevel=3"
       "systemd.show_status=auto"
-      "rd.udev.log_level=3"
-      "udev.log_priority=3"
+      "udev.log_level=3"
+      #"udev.log_priority=3"
     ];
     # Konsolen-Logs während des Bootens komplett verstecken
-    consoleLogLevel = 0;
+    consoleLogLevel = 3;
     initrd.verbose = false;
 
     loader = {
