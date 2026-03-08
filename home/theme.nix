@@ -9,12 +9,24 @@ in {
     enable = mkEnableOption "Enable Custom Horizon Theme Engine";
 
     colors = {
-      # Hex-Werte ohne '#' für einfache Nutzung in Configs
-      bg = mkOption { type = types.str; default = "0a0512"; description = "Deep Dark Purple/Black"; };
-      fg = mkOption { type = types.str; default = "e0d8ea"; description = "Off-White / Foreground"; };
-      accent = mkOption { type = types.str; default = "ff6600"; description = "Neon Orange"; };
-      accent_sec = mkOption { type = types.str; default = "ff0055"; description = "Neon Pink (für Gradienten)"; };
-      inactive = mkOption { type = types.str; default = "1a1025"; description = "Dark Purple for inactive elements"; };
+      # Basis
+      bg = mkOption { type = types.str; default = "050514"; description = "Extrem dunkles Mitternachtsblau/Violett"; };
+      fg = mkOption { type = types.str; default = "00e5ff"; description = "Neon Cyan (Text leuchtet)"; };
+      inactive = mkOption { type = types.str; default = "110b29"; };
+
+      # Synthwave Terminal Palette (Die 8 Grundfarben)
+      black   = mkOption { type = types.str; default = "050514"; }; # Gleich wie bg
+      red     = mkOption { type = types.str; default = "ff0055"; }; # Neon Rot/Pink (dein altes 'pink')
+      green   = mkOption { type = types.str; default = "00ffcc"; }; # Neon Mint
+      yellow  = mkOption { type = types.str; default = "ff5500"; }; # Neon Orange (dein altes 'orange')
+      blue    = mkOption { type = types.str; default = "00e5ff"; }; # Neon Cyan (dein altes 'cyan')
+      magenta = mkOption { type = types.str; default = "b800ff"; }; # Deep Purple
+      cyan    = mkOption { type = types.str; default = "00ffff"; }; # Light Cyan
+      white   = mkOption { type = types.str; default = "e0d8ea"; }; # Off-White für echten Text
+
+      # Semantische Aliase (DRY: Wir verweisen auf die Palette)
+      orange = mkOption { type = types.str; default = "ff5500"; }; # Alias für dein Accent
+      pink   = mkOption { type = types.str; default = "ff00aa"; }; # Spezifisches helles Pink
     };
 
     ui = {
@@ -57,11 +69,11 @@ in {
           # Hex-Werte + Alpha-Kanal (z.B. 'dd' für leichte Transparenz)
           background = "${cfg.colors.bg}dd";
           text = "${cfg.colors.fg}ff";
-          match = "${cfg.colors.accent}ff";
+          match = "${cfg.colors.pink}ff";
           selection = "${cfg.colors.inactive}cc";
-          selection-text = "${cfg.colors.accent}ff";
-          selection-match = "${cfg.colors.accent_sec}ff";
-          border = "${cfg.colors.accent}ff";
+          selection-text = "${cfg.colors.cyan}ff";
+          selection-match = "${cfg.colors.orange}ff";
+          border = "${cfg.colors.pink}ff";
         };
         border = {
           radius = cfg.ui.rounding;
@@ -78,7 +90,7 @@ in {
         enable = true;
         backgroundColor = "#${cfg.colors.bg}ee";
         textColor = "#${cfg.colors.fg}";
-        borderColor = "#${cfg.colors.accent}";
+        borderColor = "#${cfg.colors.pink}";
         borderRadius = cfg.ui.rounding;
         borderSize = cfg.ui.border_size;
       };

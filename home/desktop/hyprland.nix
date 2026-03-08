@@ -38,11 +38,12 @@ in {
 
       # 4. Design & Layout
       general = {
-        gaps_in = 5;
-        gaps_out = 10;
+        gaps_in = 6;
+        gaps_out = 12;
         border_size = theme.ui.border_size;
         
-        "col.active_border" = "rgb(${theme.colors.accent}) rgb(${theme.colors.accent_sec}) 45deg";
+        # Ein 3-Farb-Gradient: Pink -> Orange -> Cyan
+        "col.active_border" = "rgb(${theme.colors.pink}) rgb(${theme.colors.orange}) rgb(${theme.colors.cyan}) 45deg";
         "col.inactive_border" = "rgb(${theme.colors.inactive})";
         
         layout = "dwindle";
@@ -64,22 +65,22 @@ in {
           enabled = true;
           range = 15;
           render_power = 2;
-          color = "rgba(${theme.colors.accent}44)";
+          color = "rgba(${theme.colors.orange}44)";
         };
       };
-
-      # 5. Animationen (Snappy "Neon" Feeling)
+      
       animations = {
         enabled = true;
         bezier = [
           "neon, 0.05, 0.9, 0.1, 1.05"
           "smooth, 0.25, 1, 0.5, 1"
+          "linear, 0.0, 0.0, 1.0, 1.0" # NEU: Für die Endlos-Rotation
         ];
         animation = [
           "windows, 1, 5, neon, slide"
           "windowsOut, 1, 4, smooth, slide"
           "border, 1, 10, default"
-          "borderangle, 1, 8, default"
+          "borderangle, 1, 50, linear, loop" # NEU: Die Farben im Rahmen drehen sich endlos!
           "fade, 1, 5, smooth"
           "workspaces, 1, 6, default"
         ];
