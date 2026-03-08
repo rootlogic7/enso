@@ -32,7 +32,7 @@ in {
       ];
 
       exec-once = [
-        "${pkgs.swaybg}/bin/swaybg -i ${./wallpaper.png} -m fill"
+        "${pkgs.swaybg}/bin/swaybg -i ${./wallpaper.jpg} -m fill"
         "waybar"
       ];
 

@@ -42,6 +42,7 @@ in {
           ".local/share/keyrings"
           ".local/state/nvim"
           ".local/share/nvim"
+          "Development"
         ];
         files = [
           ".config/nushell/history.txt"
