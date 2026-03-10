@@ -23,6 +23,11 @@
   # === NEU: SoC Opt-In Features aktivieren ===
   horizon = {
     desktop.enable = true;
+    desktop.monitors = [
+      "eDP-1,1366x768@60,0x0,1"
+      "DP-6,1280x1024@60,0x-1024,1"
+    ];
+
     impermanence.enable = true;
     network.enable = true;
     security.enable = true;
