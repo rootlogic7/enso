@@ -1,8 +1,9 @@
 # home/desktop/hyprland.nix
-{ config, pkgs, lib, ... }:
+{ config, pkgs, lib, osConfig, ... }:
 
 let
   theme = config.horizon.theme;
+  isNvidia = osConfig.horizon.hardware.nvidia.enable or false;
 in {
   wayland.windowManager.hyprland = {
     enable = true;
@@ -32,6 +33,12 @@ in {
       env = [
         "XCURSOR_THEME,phinger-cursors-light"
         "XCURSOR_SIZE,24"
+      ] ++ lib.optionals isNvidia [
+        # Hyprland-spezifische Envs für Nvidia
+        "LIBVA_DRIVER_NAME,nvidia"
+        "XDG_SESSION_TYPE,wayland"
+        "GBM_BACKEND,nvidia-drm"
+        "__GLX_VENDOR_LIBRARY_NAME,nvidia"
       ];
 
       exec-once = [
@@ -87,6 +94,11 @@ in {
           "fade, 1, 5, smooth"
           "workspaces, 1, 6, default"
         ];
+      };
+
+      # Hardware-Cursor-Fix für Nvidia
+      cursor = lib.mkIf isNvidia {
+        no_hardware_cursors = true;
       };
 
       misc = {
