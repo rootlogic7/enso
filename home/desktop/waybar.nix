@@ -22,17 +22,18 @@ let
   };
 
   # 2. TEMPLATES FÜR DIE LEISTEN
+  # --- NOVA PROFILE & DEFFAULT---
   mkTopBar = output: {
     name = "topbar";
     layer = "top";
     position = "top";
     height = 20;
     spacing = 4;
-    inherit output; # Weist die Bar einem spezifischen Monitor zu
+    inherit output;
     modules-left = [ "custom/nixos" "hyprland/workspaces" ];
     modules-center = [ "hyprland/window" ];
     modules-right = [ "idle_inhibitor" "tray" "clock" "custom/power" ];
-  } // modules; # Zieht die Module von oben rein
+  } // modules;
 
   mkBottomBar = output: {
     name = "bottombar";
@@ -50,36 +51,57 @@ let
   # Hauptmonitor (DP-1): Volle Top-Bar
   mkTopBarQuasarMain = output: mkTopBar output;
 
-  # Zweitmonitor (HDMI-A-1): Abgespeckte Top-Bar (z.B. ohne Tray und Idle-Inhibitor)
+  # Quasar Bottom-Bar: Wie Nova, aber ohne Backlight und Batterie
+  mkBottomBarQuasar = output: {
+    name = "bottombar-quasar";
+    layer = "top";
+    position = "bottom";
+    height = 20;
+    spacing = 4;
+    inherit output;
+    modules-left = [ "network" ];
+    modules-center = [ ];
+    modules-right = [ "cpu" "memory" "pulseaudio" ]; 
+  } // modules;
+
+  # Quasar Zweit-Monitor Top-Bar: Hardware-Module wandern nach oben
   mkTopBarQuasarSec = output: {
-    name = "topbar-sec";
+    name = "topbar-quasar-sec";
     layer = "top";
     position = "top";
     height = 20;
     spacing = 4;
     inherit output;
-    modules-left = [ "custom/nixos" "hyprland/workspaces" ];
-    modules-center = [ "hyprland/window" ];
-    modules-right = [ "clock" "custom/power" ]; # Reduziert
+    modules-left = [ "network" ];
+    modules-center = [ ];
+    modules-right = [ "cpu" "memory" "pulseaudio" ]; 
   } // modules;
 
   # 3. DIE MODI GENERIEREN
-  modeQuasar = [ (mkTopBarQuasarMain "DP-1") (mkTopBarQuasarSec "HDMI-A-1") ];
   modeLaptop      = [ (mkTopBar "eDP-1") (mkBottomBar "eDP-1") ];
   modeDocking     = [ (mkTopBar "DP-6")  (mkBottomBar "eDP-1") ];
   modeDockingOnly = [ (mkTopBar "DP-6")  (mkBottomBar "DP-6")  ];
 
-  # 4.a DAS INTELLIGENTE SWITCHER-SKRIPT (Erweitert für Quasar)
+  # Quasar (Workstation)
+  modeQuasarSingle = [ (mkTopBar "DP-1") (mkBottomBarQuasar "DP-1") ];
+  modeQuasarDual   = [ (mkTopBar "DP-1") (mkTopBarQuasarSec "HDMI-A-1") ];
+
+  # 4. DAS INTELLIGENTE SWITCHER-SKRIPT (Erweitert)
   barSwitcher = pkgs.writeShellScriptBin "statusbar-switcher" ''
     ${pkgs.procps}/bin/pkill -f waybar
     sleep 0.5
     MONITORS=$(${pkgs.hyprland}/bin/hyprctl monitors -j | ${pkgs.jq}/bin/jq -r '.[].name')
     
-    # --- QUASAR LOGIK ---
+    # --- QUASAR LOGIK (Workstation) ---
+    # Wenn DP-1 UND HDMI-A-1 aktiv sind: Dual-Monitor Modus (Zwei Top-Bars)
     if echo "$MONITORS" | grep -q "DP-1" && echo "$MONITORS" | grep -q "HDMI-A-1"; then
-      ${pkgs.waybar}/bin/waybar -c ~/.config/waybar/config-quasar -s ~/.config/waybar/style.css &
+      ${pkgs.waybar}/bin/waybar -c ~/.config/waybar/config-quasar-dual -s ~/.config/waybar/style.css &
     
-    # --- NOVA LOGIK ---
+    # Wenn NUR DP-1 aktiv ist: Single-Monitor Modus (Top & Bottom Bar)
+    elif echo "$MONITORS" | grep -q "DP-1"; then
+      ${pkgs.waybar}/bin/waybar -c ~/.config/waybar/config-quasar-single -s ~/.config/waybar/style.css &
+    
+    # --- NOVA LOGIK (Laptop) ---
     elif echo "$MONITORS" | grep -q "DP-6" && echo "$MONITORS" | grep -q "eDP-1"; then
       ${pkgs.waybar}/bin/waybar -c ~/.config/waybar/config-docking -s ~/.config/waybar/style.css &
     elif echo "$MONITORS" | grep -q "DP-6"; then
@@ -125,7 +147,9 @@ in {
   xdg.configFile."waybar/config-laptop".text = builtins.toJSON modeLaptop;
   xdg.configFile."waybar/config-docking".text = builtins.toJSON modeDocking;
   xdg.configFile."waybar/config-docking-only".text = builtins.toJSON modeDockingOnly;
-  xdg.configFile."waybar/config-quasar".text = builtins.toJSON modeQuasar;
+
+  xdg.configFile."waybar/config-quasar-single".text = builtins.toJSON modeQuasarSingle;
+  xdg.configFile."waybar/config-quasar-dual".text = builtins.toJSON modeQuasarDual;
 
   programs.waybar = {
     enable = true;
