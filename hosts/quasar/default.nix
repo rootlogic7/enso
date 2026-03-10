@@ -13,6 +13,14 @@
   networking.hostName = "quasar";
   networking.hostId = "8425e349";
 
+  horizon = {
+    desktop.enable = true;
+    impermanence.enable = true;
+    network.enable = true;
+    security.enable = true;
+    hardware.nvidia.enable = true;
+  };
+
   boot = {
     supportedFilesystems = [ "zfs" ];
     zfs.requestEncryptionCredentials = true;
