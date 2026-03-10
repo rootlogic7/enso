@@ -9,7 +9,10 @@ in {
     settings = {
       
       # 1. Monitore
-      monitor = "eDP-1,preferred,auto,1";
+      monitor = [
+        "eDP-1,1366x768@60,0x0,1"
+        "DP-6,1280x1024@60,0x-1024,1"
+      ];
 
       # 2. Tastatur & Touchpad (Laptop-Optimierungen)
       input = {
@@ -33,7 +36,7 @@ in {
 
       exec-once = [
         "${pkgs.swaybg}/bin/swaybg -i ${./wallpaper.jpg} -m fill"
-        "waybar"
+        #        "statusbar-listener"
       ];
 
       # 4. Design & Layout
@@ -111,6 +114,7 @@ in {
         "$mod, F, fullscreen,"
         "$mod SHIFT, Space, togglefloating,"
         "$mod SHIFT, E, exit,"
+        "$mod SHIFT, W, exec, statusbar-switcher"
 
         "$mod, h, movefocus, l"
         "$mod, j, movefocus, d"
@@ -129,6 +133,11 @@ in {
       bindm = [
         "$mod, mouse:272, movewindow"   # Linke Maustaste
         "$mod, mouse:273, resizewindow" # Rechte Maustaste
+      ];
+
+      bindl = [
+        ", switch:on:Lid Switch, exec, hyprctl keyword monitor \"eDP-1, disable\""
+        ", switch:off:Lid Switch, exec, hyprctl keyword monitor \"eDP-1, 1366x768@60, 0x0, 1\""
       ];
     };
   };

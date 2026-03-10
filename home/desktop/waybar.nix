@@ -3,118 +3,158 @@
 
 let
   theme = config.horizon.theme;
+
+  # 1. GEMEINSAME MODULE (Nur einmal definieren!)
+  modules = {
+    "custom/nixos" = { format = ""; tooltip = false; };
+    "hyprland/workspaces" = { format = "{icon}"; on-click = "activate"; format-icons = { active = ""; default = ""; }; };
+    "hyprland/window" = { format = "{title}"; max-length = 50; };
+    "clock" = { format = " {:%H:%M}"; tooltip-format = "<tt>{calendar}</tt>"; };
+    "idle_inhibitor" = { format = "{icon}"; format-icons = { activated = ""; deactivated = ""; }; };
+    "tray" = { icon-size = 14; spacing = 6; };
+    "custom/power" = { format = "⏻"; on-click = "wlogout"; };
+    "network" = { format-wifi = " {essid}"; format-ethernet = "󰈀 LAN"; format-disconnected = "⚠ Offline"; };
+    "cpu" = { format = " {usage}%"; };
+    "memory" = { format = " {percentage}%"; };
+    "backlight" = { format = "{icon} {percent}%"; format-icons = ["󰃞" "󰃟" "󰃠"]; };
+    "pulseaudio" = { format = "{icon} {volume}%"; format-muted = " Muted"; format-icons = { headphone = ""; default = ["" ""]; }; };
+    "battery" = { states = { warning = 30; critical = 15; }; format = "{icon} {capacity}%"; format-charging = " {capacity}%"; format-icons = ["" "" "" "" ""]; };
+  };
+
+  # 2. TEMPLATES FÜR DIE LEISTEN
+  mkTopBar = output: {
+    name = "topbar";
+    layer = "top";
+    position = "top";
+    height = 20;
+    spacing = 4;
+    inherit output; # Weist die Bar einem spezifischen Monitor zu
+    modules-left = [ "custom/nixos" "hyprland/workspaces" ];
+    modules-center = [ "hyprland/window" ];
+    modules-right = [ "idle_inhibitor" "tray" "clock" "custom/power" ];
+  } // modules; # Zieht die Module von oben rein
+
+  mkBottomBar = output: {
+    name = "bottombar";
+    layer = "top";
+    position = "bottom";
+    height = 20;
+    spacing = 4;
+    inherit output;
+    modules-left = [ "network" ];
+    modules-center = [ ];
+    modules-right = [ "cpu" "memory" "backlight" "pulseaudio" "battery" ];
+  } // modules;
+
+  # 3. DIE 3 MODI GENERIEREN
+  modeLaptop      = [ (mkTopBar "eDP-1") (mkBottomBar "eDP-1") ];
+  modeDocking     = [ (mkTopBar "DP-6")  (mkBottomBar "eDP-1") ];
+  modeDockingOnly = [ (mkTopBar "DP-6")  (mkBottomBar "DP-6")  ];
+
+  # 4.a DAS INTELLIGENTE SWITCHER-SKRIPT (Gefixt)
+  barSwitcher = pkgs.writeShellScriptBin "statusbar-switcher" ''
+    # Nutzt pkill mit absolutem Pfad aus dem procps-Paket
+    ${pkgs.procps}/bin/pkill -f waybar
+    # Warte kurz, um sicherzugehen, dass die Prozesse wirklich tot sind
+    sleep 0.5
+    MONITORS=$(${pkgs.hyprland}/bin/hyprctl monitors -j | ${pkgs.jq}/bin/jq -r '.[].name')
+    # Wir starten waybar ebenfalls mit absolutem Pfad, um PATH-Probleme zu vermeiden
+    if echo "$MONITORS" | grep -q "DP-6" && echo "$MONITORS" | grep -q "eDP-1"; then
+      ${pkgs.waybar}/bin/waybar -c ~/.config/waybar/config-docking -s ~/.config/waybar/style.css &
+    elif echo "$MONITORS" | grep -q "DP-6"; then
+      ${pkgs.waybar}/bin/waybar -c ~/.config/waybar/config-docking-only -s ~/.config/waybar/style.css &
+    else
+      ${pkgs.waybar}/bin/waybar -c ~/.config/waybar/config-laptop -s ~/.config/waybar/style.css &
+    fi
+  '';
+
+  # 4.b NEU: DER VERBESSERTE EVENT-LISTENER
+  #barListener = pkgs.writeShellScriptBin "statusbar-listener" ''
+  #  # 1. WICHTIG: Warte 2 Sekunden nach dem Hyprland-Start, 
+  #  # damit Monitore und Sockets zu 100% bereit sind.
+  #  sleep 2
+  #  # 2. Führe das initiale Setup für den aktuellen Monitor-Zustand aus
+  #  ${barSwitcher}/bin/statusbar-switcher
+  #  # 3. Lausche auf Events (mit einer Endlosschleife, falls socat mal abbricht)
+  #  SOCKET="UNIX-CONNECT:$XDG_RUNTIME_DIR/hypr/$HYPRLAND_INSTANCE_SIGNATURE/.socket2.sock"
+  #  while true; do
+  #    ${pkgs.socat}/bin/socat -U - $SOCKET | while read -r line; do
+  #      if [[ "$line" == "monitoradded"* ]] || [[ "$line" == "monitorremoved"* ]]; then
+  #        # Kurze Verzögerung, damit Hyprland den neuen Monitor registrieren kann, 
+  #        # bevor der Switcher die neuen Daten abfragt
+  #        sleep 1
+  #        ${barSwitcher}/bin/statusbar-switcher
+  #      fi
+  #    done
+  #    # Falls socat crasht, warte 1 Sekunde und starte es neu
+  #    sleep 1
+  #  done
+  #'';
+
 in {
-  # Die JSONC-Config laden wir weiterhin aus deiner Datei, das ist übersichtlicher
-  xdg.configFile."waybar/config".source = ./waybar/config.jsonc;
+  # Wir fügen unser neues Skript und jq (zum JSON-Parsen) den Paketen hinzu
+  home.packages = [
+    barSwitcher
+    # barListener
+    pkgs.jq
+    # pkgs.socat 
+  ];
+
+  # Die Konfigurationsdateien in ~/.config/waybar/ schreiben
+  xdg.configFile."waybar/config-laptop".text = builtins.toJSON modeLaptop;
+  xdg.configFile."waybar/config-docking".text = builtins.toJSON modeDocking;
+  xdg.configFile."waybar/config-docking-only".text = builtins.toJSON modeDockingOnly;
 
   programs.waybar = {
     enable = true;
+    # systemd aus, da unser Skript das Starten übernimmt
+    systemd.enable = false;
     
-    # Home-Manager baut uns die style.css automatisch aus diesem String!
+    # Das Styling (genau mit deinen gewünschten px-Werten!)
     style = ''
       * {
           border: none;
           border-radius: 0;
           font-family: "${theme.ui.font_propo}", monospace;
-          font-size: 12px;
+          font-size: 9px; 
           min-height: 0;
       }
 
       window#waybar {
-          background-color: transparent;
-      }
-
-      /* Die Kapseln (Gruppen) */
-      .modules-left, .modules-center, .modules-right {
           background-color: rgba(5, 5, 20, ${theme.ui.opacity});
-          border: 2px solid #${theme.colors.pink};
-          border-radius: 18px;
-          margin: 7px 10px 0px 10px;
-          box-shadow: 0px 0px 18px rgba(255, 0, 170, 0.45);
-          padding: 2px 4px;
-      }
-
-      tooltip {
-          background: #${theme.colors.bg};
-          border: 1px solid #${theme.colors.cyan};
-          border-radius: ${toString theme.ui.rounding}px;
-          box-shadow: 0px 0px 10px rgba(0, 229, 255, 0.4);
-      }
-
-      /* =========================================================
-         FESTE BREITEN (Damit die Kapseln nie wackeln)
-         ========================================================= */
-      #custom-nixos, #custom-userhost, #cpu, #memory, #workspaces,
-      #window, #network, #pulseaudio, #battery, #clock {
-          padding: 0 5px;
-          margin: 1px 3px;
           color: #${theme.colors.fg};
-          text-shadow: 0px 0px 6px #${theme.colors.fg};
-          font-weight: bold;
       }
 
-      /* Spezifische Breiten pro Element */
-      #custom-nixos {
-          min-width: 18px;
-          color: #${theme.colors.cyan};
-          text-shadow: 0px 0px 8px #${theme.colors.cyan};
-          font-size: 18px;
+      window#waybar.topbar {
+          border-bottom: ${toString theme.ui.border_size}px solid #${theme.colors.pink};
       }
 
-      #custom-userhost {
-          min-width: 100px;
-          color: #${theme.colors.magenta};
-          text-shadow: 0px 0px 8px #${theme.colors.magenta};
+      window#waybar.bottombar {
+          border-top: ${toString theme.ui.border_size}px solid #${theme.colors.cyan};
       }
 
-      #cpu, #memory, #pulseaudio, #battery, #clock {
-          min-width: 60px;
-      }
-
-      #network {
-          min-width: 100px;
-      }
-
-      #workspaces {
-          min-width: 120px;
+      #workspaces button, #clock, #battery, #network, #pulseaudio, 
+      #backlight, #memory, #cpu, #tray, #idle_inhibitor, #custom-power, #custom-nixos {
+          padding: 1px 3px;
+          margin: 1px 4px;
+          color: #${theme.colors.white};
       }
 
       #window {
-          min-width: 300px;
-          color: #${theme.colors.white};
-          text-shadow: 0px 0px 8px #${theme.colors.white};
-      }
-
-      /* Workspaces Logik */
-      #workspaces button {
-          padding: 0 5px;
-          color: #4a3b69;
-          transition: all 0.3s ease;
-      }
-
-      #workspaces button.active {
+          font-size: 11px;
+          padding: 1px 3px;
+          margin: 1px 4px;
           color: #${theme.colors.cyan};
-          text-shadow: 0px 0px 10px #${theme.colors.cyan};
+          font-weight: bold;
       }
 
-      /* Batterie Farben */
-      #battery.charging { 
-          color: #${theme.colors.green};
-          text-shadow: 0px 0px 8px #${theme.colors.green}; 
-      }
-      #battery.warning:not(.charging) { 
-          color: #${theme.colors.orange};
-          text-shadow: 0px 0px 8px #${theme.colors.orange}; 
-      }
-      #battery.critical:not(.charging) {
-          color: #${theme.colors.red};
-          text-shadow: 0px 0px 12px #${theme.colors.red};
-          animation: blink 2s linear infinite;
-      }
+      #workspaces button { color: #${theme.colors.inactive}; }
+      #workspaces button.active { color: #${theme.colors.pink}; font-weight: bold; }
 
-      @keyframes blink {
-          50% { opacity: 0.3; }
-      }
+      #battery.charging { color: #${theme.colors.green}; }
+      #battery.warning:not(.charging) { color: #${theme.colors.orange}; }
+      #battery.critical:not(.charging) { color: #${theme.colors.red}; animation: blink 2s linear infinite; }
+      @keyframes blink { 50% { opacity: 0.3; } }
     '';
   };
 }
