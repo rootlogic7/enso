@@ -1,13 +1,13 @@
 { config, pkgs, lib, inputs, ... }:
 
 {
-  system.stateVersion = "25.11"; # Oder deine aktuelle State Version
+  system.stateVersion = "25.11";
 
   imports = [ 
     ./hardware-configuration.nix
     ./disko.nix
     inputs.disko.nixosModules.disko
-    # ... hier kommen später deine Horizon-Module (z.B. horizon.hardware.nvidia.enable)
+    # ...
   ];
 
   networking.hostName = "quasar";
