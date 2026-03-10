@@ -31,6 +31,7 @@ in {
 
     ui = {
       font = mkOption { type = types.str; default = "DepartureMono Nerd Font Mono"; };
+      font_propo = mkOption { type = types.str; default = "DepartureMono Nerd Font Propo"; };
       opacity = mkOption { type = types.str; default = "0.75"; };
       rounding = mkOption { type = types.int; default = 4; };
       border_size = mkOption { type = types.int; default = 2; };

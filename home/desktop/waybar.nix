@@ -15,8 +15,8 @@ in {
       * {
           border: none;
           border-radius: 0;
-          font-family: "${theme.ui.font}", monospace;
-          font-size: 13px;
+          font-family: "${theme.ui.font_propo}", monospace;
+          font-size: 12px;
           min-height: 0;
       }
 
@@ -29,7 +29,7 @@ in {
           background-color: rgba(5, 5, 20, ${theme.ui.opacity});
           border: 2px solid #${theme.colors.pink};
           border-radius: 18px;
-          margin: 10px 15px 0px 15px;
+          margin: 7px 10px 0px 10px;
           box-shadow: 0px 0px 18px rgba(255, 0, 170, 0.45);
           padding: 2px 4px;
       }
@@ -46,8 +46,8 @@ in {
          ========================================================= */
       #custom-nixos, #custom-userhost, #cpu, #memory, #workspaces,
       #window, #network, #pulseaudio, #battery, #clock {
-          padding: 0 7px;
-          margin: 2px 4px;
+          padding: 0 5px;
+          margin: 1px 3px;
           color: #${theme.colors.fg};
           text-shadow: 0px 0px 6px #${theme.colors.fg};
           font-weight: bold;
@@ -55,10 +55,10 @@ in {
 
       /* Spezifische Breiten pro Element */
       #custom-nixos {
-          min-width: 15px;
+          min-width: 18px;
           color: #${theme.colors.cyan};
           text-shadow: 0px 0px 8px #${theme.colors.cyan};
-          font-size: 16px;
+          font-size: 18px;
       }
 
       #custom-userhost {
@@ -68,7 +68,7 @@ in {
       }
 
       #cpu, #memory, #pulseaudio, #battery, #clock {
-          min-width: 50px;
+          min-width: 60px;
       }
 
       #network {

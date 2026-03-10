@@ -24,11 +24,11 @@
         "tooltip": false
     },
     "cpu": {
-        "format": "  {usage}%",
+        "format": " {usage}%",
         "tooltip": false
     },
     "memory": {
-        "format": "  {percentage}%",
+        "format": " {percentage}%",
         "tooltip": false
     },
     "hyprland/workspaces": {
@@ -51,7 +51,7 @@
 
     // --- RECHTE SEITE ---
     "network": {
-        "format-wifi": "  {essid}",
+        "format-wifi": "{essid}",
         "format-ethernet": "󰈀 LAN",
         "tooltip-format": " {ifname} via {gwaddr}",
         "format-disconnected": "⚠ Offline"
@@ -74,6 +74,6 @@
         "format-icons": [" ", " ", " ", " ", " "]
     },
     "clock": {
-        "format": " {:%H:%M}" // Nur noch Uhrzeit
+        "format": "{:%H:%M}" // Nur noch Uhrzeit
     }
 }
