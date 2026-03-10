@@ -8,5 +8,6 @@
     ./network.nix
     ./security.nix
     ./power.nix
+    ./nvidia.nix
   ];
 }
