@@ -3,15 +3,16 @@
 {
   system.stateVersion = "25.11";
 
-  imports = [ 
+  imports = [
+    # Hardware
     ./hardware-configuration.nix
     ./disko.nix
     inputs.disko.nixosModules.disko
     
-    # Unsere gebündelten System-Module (inkl. nvidia.nix)
+    # System
     ../../system/default.nix
 
-    # Home-Manager direkt im Host einbinden
+    # Home
     inputs.home-manager.nixosModules.home-manager
   ];
 
