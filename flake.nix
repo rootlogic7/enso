@@ -67,8 +67,21 @@
         ];
       };
       
-      # Platzhalter für zukünftige Hosts:
-      # quasar = nixpkgs.lib.nixosSystem { ... };
+      # Host: quasar (Workstation)
+      quasar = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        # Inputs weitergeben
+        specialArgs = { inherit inputs; };
+        
+        modules = [
+          # Globale Nix-Community Module (genau wie bei nova)
+          inputs.impermanence.nixosModules.impermanence
+          inputs.sops-nix.nixosModules.sops
+          
+          # Der Einsprungpunkt für den Host "quasar"
+          ./hosts/quasar/default.nix
+        ];
+      };
     };
   };
 }
