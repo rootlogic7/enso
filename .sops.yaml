@@ -4,7 +4,7 @@ keys:
   # Public Age Key 'haku_nova'
   - &haku_nova "age1eycv5vdxaze35ux64p8rmgvpdvfv3t4vtr8k7plfe3cwrd9edalsqu4l3u"
   # Public Age Key 'host@quasar'
-  - &host_quasar "age13lrklv2r8e2npp5pm3t9fghncglyz7rvcglucwf9vt3v42mcuy4sn98z65"
+  - &host_quasar "age1ajcq7rpsjrcdq5gtgv04ga0lr4kua5medueg3vj53dtghtmdpu5sgyrh57"
 creation_rules:
   # Alle Dateien im Ordner 'secrets', die auf .yaml enden, werden mit diesem Key verschlüsselt
   - path_regex: secrets/[^/]+\.yaml$
