@@ -95,15 +95,16 @@ in {
     # --- MAKO ---
     services.mako = {
       enable = true;
+      settings = {
+        # UI-Werte
+        border-radius = cfg.ui.rounding;
+        border-size = cfg.ui.border_size;
       
-      # UI-Werte
-      borderRadius = cfg.ui.rounding;
-      borderSize = cfg.ui.border_size;
-      
-      # Farben direkt aus dem Schema laden (Mako erwartet klassische #Hex-Werte)
-      backgroundColor = "#${cfg.colors.bg}ee";
-      textColor = "#${cfg.colors.fg}";
-      borderColor = "#${cfg.colors.accent_primary}";
+        # Farben direkt aus dem Schema laden (Mako erwartet klassische #Hex-Werte)
+        background-color = "#${cfg.colors.bg}ee";
+        text-color = "#${cfg.colors.fg}";
+        border-color = "#${cfg.colors.accent_primary}";
+      };
     };
   };
 }
