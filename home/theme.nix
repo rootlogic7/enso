@@ -4,127 +4,67 @@
 with lib;
 let
   cfg = config.horizon.theme;
-
-  # Hilfsfunktionen, um Fuzzel und Mako Farb-Dateien zu generieren
-  mkFuzzelColors = palette: ''
-    [colors]
-    background=${palette.bg}dd
-    text=${palette.fg}ff
-    match=${palette.accent_primary}ff
-    selection=${palette.inactive_border}cc
-    selection-text=${palette.accent_tertiary}ff
-    selection-match=${palette.accent_secondary}ff
-    border=${palette.accent_primary}ff
-  '';
-
-  mkMakoColors = palette: ''
-    background-color=#${palette.bg}ee
-    text-color=#${palette.fg}
-    border-color=#${palette.accent_primary}
-  '';
-
 in {
-  # 1. Wir definieren unsere Theme-Variablen (Die "Engine")
+  # 1. Das "Schema" für alle künftigen Skins
   options.horizon.theme = {
-    enable = mkEnableOption "Enable Custom Horizon Theme Engine";
-    
+    enable = mkEnableOption "Enable Horizon Theme Engine";
+
     ui = {
-      font = mkOption { type = types.str; default = "DepartureMono Nerd Font Mono"; };
-      font_propo = mkOption { type = types.str; default = "DepartureMono Nerd Font Propo"; };
-      opacity = mkOption { type = types.str; default = "0.75"; };
-      rounding = mkOption { type = types.int; default = 4; };
-      border_size = mkOption { type = types.int; default = 2; };
-      blur_size = mkOption { type = types.int; default = 8; };
+      font = mkOption { type = types.str; default = "monospace"; description = "System Default Font"; };
+      font_propo = mkOption { type = types.str; default = "sans-serif"; };
+      opacity = mkOption { type = types.str; default = "1.0"; };
+      rounding = mkOption { type = types.int; default = 0; };
+      border_size = mkOption { type = types.int; default = 1; };
+      blur_size = mkOption { type = types.int; default = 0; };
     };
 
-    palettes = {
-      dark = {
-        bg = mkOption { type = types.str; default = "050514"; };
-        fg = mkOption { type = types.str; default = "e0d8ea"; };
-        cursor = mkOption { type = types.str; default = "00e5ff"; };
+    colors = {
+      bg = mkOption { type = types.str; default = "111111"; };
+      fg = mkOption { type = types.str; default = "eeeeee"; };
+      cursor = mkOption { type = types.str; default = "ffffff"; };
+      
+      accent_primary = mkOption { type = types.str; default = "555555"; };
+      accent_secondary = mkOption { type = types.str; default = "777777"; };
+      accent_tertiary = mkOption { type = types.str; default = "999999"; };
+      inactive_border = mkOption { type = types.str; default = "333333"; };
 
-        term_reg_0 = mkOption { type = types.str; default = "050514"; };
-        term_reg_1 = mkOption { type = types.str; default = "ff0055"; };
-        term_reg_2 = mkOption { type = types.str; default = "00ffcc"; };
-        term_reg_3 = mkOption { type = types.str; default = "ff5500"; };
-        term_reg_4 = mkOption { type = types.str; default = "00e5ff"; };
-        term_reg_5 = mkOption { type = types.str; default = "b800ff"; };
-        term_reg_6 = mkOption { type = types.str; default = "00ffff"; };
-        term_reg_7 = mkOption { type = types.str; default = "e0d8ea"; };
-
-        term_bri_0 = mkOption { type = types.str; default = "110b29"; };
-        term_bri_1 = mkOption { type = types.str; default = "ff00aa"; };
-        term_bri_2 = mkOption { type = types.str; default = "55ffdd"; };
-        term_bri_3 = mkOption { type = types.str; default = "ff8800"; };
-        term_bri_4 = mkOption { type = types.str; default = "66eeff"; };
-        term_bri_5 = mkOption { type = types.str; default = "d166ff"; };
-        term_bri_6 = mkOption { type = types.str; default = "66ffff"; };
-        term_bri_7 = mkOption { type = types.str; default = "ffffff"; };
-        
-        accent_primary = mkOption { type = types.str; default = "ff00aa"; };
-        accent_secondary = mkOption { type = types.str; default = "ff5500"; };
-        accent_tertiary = mkOption { type = types.str; default = "00e5ff"; };
-        inactive_border = mkOption { type = types.str; default = "110b29"; };
-      };
-
-      light = {
-        bg = mkOption { type = types.str; default = "eff1f5"; };
-        fg = mkOption { type = types.str; default = "4c4f69"; };
-        cursor = mkOption { type = types.str; default = "1e66f5"; };
-
-        term_reg_0 = mkOption { type = types.str; default = "bcc0cc"; };
-        term_reg_1 = mkOption { type = types.str; default = "d20f39"; };
-        term_reg_2 = mkOption { type = types.str; default = "40a02b"; };
-        term_reg_3 = mkOption { type = types.str; default = "df8e1d"; };
-        term_reg_4 = mkOption { type = types.str; default = "1e66f5"; };
-        term_reg_5 = mkOption { type = types.str; default = "ea76cb"; };
-        term_reg_6 = mkOption { type = types.str; default = "179299"; };
-        term_reg_7 = mkOption { type = types.str; default = "4c4f69"; };
-
-        term_bri_0 = mkOption { type = types.str; default = "acb0be"; };
-        term_bri_1 = mkOption { type = types.str; default = "d20f39"; };
-        term_bri_2 = mkOption { type = types.str; default = "40a02b"; };
-        term_bri_3 = mkOption { type = types.str; default = "df8e1d"; };
-        term_bri_4 = mkOption { type = types.str; default = "1e66f5"; };
-        term_bri_5 = mkOption { type = types.str; default = "ea76cb"; };
-        term_bri_6 = mkOption { type = types.str; default = "179299"; };
-        term_bri_7 = mkOption { type = types.str; default = "4c4f69"; };
-        
-        accent_primary = mkOption { type = types.str; default = "ea76cb"; };
-        accent_secondary = mkOption { type = types.str; default = "df8e1d"; };
-        accent_tertiary = mkOption { type = types.str; default = "1e66f5"; };
-        inactive_border = mkOption { type = types.str; default = "ccd0da"; };
+      # Terminal Farben (Neutrales Fallback)
+      term = {
+        black   = mkOption { type = types.str; default = "000000"; };
+        red     = mkOption { type = types.str; default = "cc0000"; };
+        green   = mkOption { type = types.str; default = "00cc00"; };
+        yellow  = mkOption { type = types.str; default = "cccc00"; };
+        blue    = mkOption { type = types.str; default = "0000cc"; };
+        magenta = mkOption { type = types.str; default = "cc00cc"; };
+        cyan    = mkOption { type = types.str; default = "00cccc"; };
+        white   = mkOption { type = types.str; default = "cccccc"; };
       };
     };
   };
 
-  # 2. Globale Tools direkt konfigurieren
+  # 2. Globale Basis-Dienste (ohne spezifisches Styling)
+  # 2. Globale Basis-Dienste (Direkt an das neutrale Schema gekoppelt)
   config = mkIf cfg.enable {
     
-    # --- NEU: Wir schreiben die Farbdateien in den Store ---
-    xdg.configFile."horizon/themes/dark/fuzzel.ini".text = mkFuzzelColors cfg.palettes.dark;
-    xdg.configFile."horizon/themes/light/fuzzel.ini".text = mkFuzzelColors cfg.palettes.light;
-
-    xdg.configFile."horizon/themes/dark/mako".text = mkMakoColors cfg.palettes.dark;
-    xdg.configFile."horizon/themes/light/mako".text = mkMakoColors cfg.palettes.light;
-
-    # Cursor
+    # Neutraler Fallback-Cursor
     home.pointerCursor = {
       enable = true;
       gtk.enable = true;
       x11.enable = true;
-      name = "phinger-cursors-light";
-      package = pkgs.phinger-cursors;
+      name = "Adwaita";
+      package = pkgs.adwaita-icon-theme;
       size = 24;
     };
 
-    # Fuzzel (Launcher) 
+    # Basis-Dienste (ohne UI)
+    programs.bat.enable = true;
+    programs.zellij.enable = true;
+
+    # --- FUZZEL ---
     programs.fuzzel = {
       enable = true;
       settings = {
         main = {
-          # NEU: Der Include-Befehl bindet unsere dynamischen Farben ein
-          include = "~/.config/horizon/themes/current/fuzzel.ini";
           font = "${cfg.ui.font}:size=12";
           terminal = "${pkgs.foot}/bin/foot";
           width = 45;
@@ -134,28 +74,36 @@ in {
           vertical-pad = 20;
           inner-pad = 10;
         };
-        # Der colors Block fällt hier weg, da er nun in der fuzzel.ini steht!
         border = {
           radius = cfg.ui.rounding;
           width = cfg.ui.border_size;
         };
+        # Farben direkt aus dem Schema laden (fuzzel erwartet RGBA Hex-Strings, 
+        # wir hängen also z.B. 'ff' für volle Deckkraft oder 'dd' für Transparenz an)
+        colors = {
+          background = "${cfg.colors.bg}dd";
+          text = "${cfg.colors.fg}ff";
+          match = "${cfg.colors.accent_primary}ff";
+          selection = "${cfg.colors.inactive_border}cc";
+          selection-text = "${cfg.colors.accent_tertiary}ff";
+          selection-match = "${cfg.colors.accent_secondary}ff";
+          border = "${cfg.colors.accent_primary}ff";
+        };
       };
     };
 
-    # Basis-Dienste
-    programs.bat.enable = true;
-    programs.zellij.enable = true;
-
-    # Mako Notification Daemon
+    # --- MAKO ---
     services.mako = {
       enable = true;
-      # Farben entfallen hier ebenfalls
+      
+      # UI-Werte
       borderRadius = cfg.ui.rounding;
       borderSize = cfg.ui.border_size;
-      # NEU: Einbinden der dynamischen Mako-Farbdatei
-      extraConfig = ''
-        include ~/.config/horizon/themes/current/mako
-      '';
+      
+      # Farben direkt aus dem Schema laden (Mako erwartet klassische #Hex-Werte)
+      backgroundColor = "#${cfg.colors.bg}ee";
+      textColor = "#${cfg.colors.fg}";
+      borderColor = "#${cfg.colors.accent_primary}";
     };
   };
 }

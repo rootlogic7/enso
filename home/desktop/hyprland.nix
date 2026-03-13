@@ -1,34 +1,14 @@
-# home/desktop/hyprland.nix
 { config, pkgs, lib, osConfig, ... }:
 
 let
   theme = config.horizon.theme;
   isNvidia = osConfig.horizon.hardware.nvidia.enable or false;
-
-  # Hilfsfunktion, um die Hyprland-Farbvariablen zu generieren
-  mkHyprlandColors = palette: ''
-    $bg = rgb(${palette.bg})
-    $accent_primary = rgb(${palette.accent_primary})
-    $accent_secondary = rgb(${palette.accent_secondary})
-    $accent_tertiary = rgb(${palette.accent_tertiary})
-    $inactive_border = rgb(${palette.inactive_border})
-    # Die Schattenfarbe braucht einen Alpha-Wert (44 in Hex = ca. 26% transparent)
-    $shadow_color = rgba(${palette.accent_secondary}44)
-  '';
-
 in {
-  # 1. Wir schreiben die Farbdateien in den XDG-Config Ordner
-  xdg.configFile."horizon/themes/dark/hyprland-colors.conf".text = mkHyprlandColors theme.palettes.dark;
-  xdg.configFile."horizon/themes/light/hyprland-colors.conf".text = mkHyprlandColors theme.palettes.light;
-
   wayland.windowManager.hyprland = {
     enable = true;
+    
     settings = {
-      
-      # NEU: Lade die Farben dynamisch aus dem aktuellen Theme-Symlink
-      source = "~/.config/horizon/themes/current/hyprland-colors.conf";
-
-      # 1. Monitore
+      # 1. Monitore (Bleibt dynamisch aus der System-Config)
       monitor = osConfig.horizon.desktop.monitors;
 
       # 2. Tastatur & Touchpad
@@ -41,13 +21,13 @@ in {
         };
       };
 
-      # 3. Variablen
+      # 3. Variablen & Environment
       "$mod" = "SUPER";
       "$terminal" = "foot";
       "$menu" = "fuzzel";
 
       env = [
-        "XCURSOR_THEME,phinger-cursors-light"
+        "XCURSOR_THEME,Adwaita"
         "XCURSOR_SIZE,24"
       ] ++ lib.optionals isNvidia [
         "LIBVA_DRIVER_NAME,nvidia"
@@ -56,58 +36,47 @@ in {
         "__GLX_VENDOR_LIBRARY_NAME,nvidia"
       ];
 
+      # Wallpaper und komplexe Switcher sind hier vorerst entfernt.
+      # Waybar wird ganz regulär gestartet.
       exec-once = [
-        # NEU: swaybg nutzt jetzt immer das Wallpaper aus dem aktuellen Theme-Ordner!
-        "${pkgs.swaybg}/bin/swaybg -i ~/.config/horizon/themes/current/wallpaper -m fill"
+        "waybar"
       ];
 
-      # 4. Design & Layout
+      # 4. Design & Layout (Verknüpft mit der neuen Theme-Engine)
       general = {
-        gaps_in = 6;
-        gaps_out = 12;
+        gaps_in = 4;
+        gaps_out = 8;
         border_size = theme.ui.border_size;
         
-        # Nutzen jetzt die dynamischen $ Variablen!
-        "col.active_border" = "$accent_primary $accent_secondary $accent_tertiary 45deg";
-        "col.inactive_border" = "$inactive_border";
+        # Direkte Nutzung der Nix-Variablen statt statischer Config-Dateien!
+        "col.active_border" = "rgb(${theme.colors.accent_primary}) rgb(${theme.colors.accent_secondary}) 45deg";
+        "col.inactive_border" = "rgb(${theme.colors.inactive_border})";
         
         layout = "dwindle";
       };
 
       decoration = {
         rounding = theme.ui.rounding;
-
+        
         blur = {
-          enabled = true;
+          # Blur wird nur eingeschaltet, wenn die UI-Settings einen Wert > 0 haben
+          enabled = theme.ui.blur_size > 0;
           size = theme.ui.blur_size;
-          passes = 3;
-          ignore_opacity = true;
-          new_optimizations = true;
+          passes = 2;
         };
+        
+        # Schatten komplett deaktivieren für eine saubere Basis
 
         shadow = {
-          enabled = true;
-          range = 15;
-          render_power = 2;
-          color = "$shadow_color"; # Dynamische Schattenfarbe
+          enabled = false;
         };
       };
 
+      # 5. Standard-Animationen (Cyberpunk-Beziers entfernt)
       animations = {
         enabled = true;
-        bezier = [
-          "neon, 0.05, 0.9, 0.1, 1.05"
-          "smooth, 0.25, 1, 0.5, 1"
-          "linear, 0.0, 0.0, 1.0, 1.0"
-        ];
-        animation = [
-          "windows, 1, 5, neon, slide"
-          "windowsOut, 1, 4, smooth, slide"
-          "border, 1, 10, default"
-          "borderangle, 1, 50, linear, loop"
-          "fade, 1, 5, smooth"
-          "workspaces, 1, 6, default"
-        ];
+        # Wenn wir hier nichts weiter definieren, nutzt Hyprland 
+        # angenehme, neutrale Default-Animationen.
       };
 
       cursor = lib.mkIf isNvidia {
@@ -120,7 +89,7 @@ in {
         vrr = 1;
       };
 
-      # 6. Window- und Layer-Rules
+      # 6. Window- und Layer-Rules (Nur funktionale)
       layerrule = [
         "blur on, match:namespace waybar"
         "ignore_alpha 0, match:namespace waybar"
@@ -131,7 +100,7 @@ in {
         "float on, match:title ^(Picture-in-Picture)$"
       ];
 
-      # 7. Binds
+      # 7. Binds (Funktional identisch, Theme-Switcher entfernt)
       bind = [
         "$mod, Return, exec, $terminal"
         "$mod, Space, exec, $menu"
@@ -140,7 +109,6 @@ in {
         "$mod, F, fullscreen,"
         "$mod SHIFT, Space, togglefloating,"
         "$mod SHIFT, E, exit,"
-        "$mod SHIFT, W, exec, statusbar-switcher"
 
         "$mod, h, movefocus, l"
         "$mod, j, movefocus, d"

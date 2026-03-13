@@ -1,47 +1,46 @@
+# home/desktop/foot.nix
 { config, pkgs, ... }:
 
 let
   theme = config.horizon.theme;
-  
-  # Hilfsfunktion, um eine [colors] Sektion für Foot zu generieren
-  mkFootColors = palette: ''
-    [colors]
-    alpha=${theme.ui.opacity}
-    background=${palette.bg}
-    foreground=${palette.fg}
-    
-    regular0=${palette.term_reg_0}
-    regular1=${palette.term_reg_1}
-    regular2=${palette.term_reg_2}
-    regular3=${palette.term_reg_3}
-    regular4=${palette.term_reg_4}
-    regular5=${palette.term_reg_5}
-    regular6=${palette.term_reg_6}
-    regular7=${palette.term_reg_7}
-
-    bright0=${palette.term_bri_0}
-    bright1=${palette.term_bri_1}
-    bright2=${palette.term_bri_2}
-    bright3=${palette.term_bri_3}
-    bright4=${palette.term_bri_4}
-    bright5=${palette.term_bri_5}
-    bright6=${palette.term_bri_6}
-    bright7=${palette.term_bri_7}
-  '';
 in {
-  # Wir schreiben die generierten Strings in echte Konfigurationsdateien im XDG Config Ordner
-  xdg.configFile."horizon/themes/dark/foot.ini".text = mkFootColors theme.palettes.dark;
-  xdg.configFile."horizon/themes/light/foot.ini".text = mkFootColors theme.palettes.light;
-
   programs.foot = {
     enable = true;
+    
     settings = {
       main = {
         shell = "nu";
         pad = "15x15";
+        # Wir nutzen direkt die Font-Variable aus dem Schema
         font = "${theme.ui.font}:size=12";
-        # Hier binden wir den Symlink ein, der später vom Skript geändert wird!
-        include = "~/.config/horizon/themes/current/foot.ini";
+      };
+      
+      colors = {
+        alpha = theme.ui.opacity;
+        background = theme.colors.bg;
+        foreground = theme.colors.fg;
+        
+        # Reguläre Farben (0-7)
+        regular0 = theme.colors.term.black;
+        regular1 = theme.colors.term.red;
+        regular2 = theme.colors.term.green;
+        regular3 = theme.colors.term.yellow;
+        regular4 = theme.colors.term.blue;
+        regular5 = theme.colors.term.magenta;
+        regular6 = theme.colors.term.cyan;
+        regular7 = theme.colors.term.white;
+
+        # Helle/Bright Farben (8-15)
+        # Für unser neutrales Fallback nutzen wir hier einfach die gleichen Farben.
+        # In einem späteren Skin kannst du diese bei Bedarf durch hellere Varianten ersetzen.
+        bright0 = theme.colors.term.black;
+        bright1 = theme.colors.term.red;
+        bright2 = theme.colors.term.green;
+        bright3 = theme.colors.term.yellow;
+        bright4 = theme.colors.term.blue;
+        bright5 = theme.colors.term.magenta;
+        bright6 = theme.colors.term.cyan;
+        bright7 = theme.colors.term.white;
       };
     };
   };

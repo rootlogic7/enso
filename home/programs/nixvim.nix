@@ -20,15 +20,6 @@
       updatetime = 50; # Schnellere Reaktionszeit
     };
 
-    # Catppuccin Mocha Theme (passend zu deinem System)
-    colorschemes.catppuccin = {
-      enable = true;
-      settings = {
-        flavour = "mocha";
-        transparent_background = true; # Passend zu deiner Foot-Terminal Transparenz
-      };
-    };
-
     # Leader-Taste auf Space legen
     globals.mapleader = " ";
 
