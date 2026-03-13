@@ -14,6 +14,9 @@ in {
       "nvidia-x11"
       "nvidia-settings"
     ];
+    # 0. boot
+    boot.kernelParams = [ "nvidia-drm.fbdev=1" ];
+    boot.initrd.kernelModules = [ "nvidia" "nvidia_modeset" "nvidia_uvm" "nvidia_drm" ];
 
     # 1. Grafik-Treiber aktivieren (hardware.opengl heißt in neueren NixOS-Versionen hardware.graphics)
     hardware.graphics = {
@@ -35,7 +38,7 @@ in {
 
       # Open-Source Kernel Module: Für RTX 5000 wird oft 'open = true' empfohlen, 
       # aber der proprietäre Treiber ('false') ist aktuell für Hyprland oft noch stabiler.
-      open = false;
+      open = true;
 
       # Nvidia Settings Menü zugänglich machen
       nvidiaSettings = true;
@@ -48,7 +51,7 @@ in {
     environment.sessionVariables = {
       LIBVA_DRIVER_NAME = "nvidia";
       XDG_SESSION_TYPE = "wayland";
-      GBM_BACKEND = "nvidia-drm";
+      # GBM_BACKEND = "nvidia-drm";
       __GLX_VENDOR_LIBRARY_NAME = "nvidia";
       # Falls Firefox/Electron-Apps zicken:
       NVD_BACKEND = "direct"; 
