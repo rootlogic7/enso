@@ -15,3 +15,4 @@ creation_rules:
         - *host_nova
         - *haku_nova
         - *host_quasar
+        - *haku_quasar
