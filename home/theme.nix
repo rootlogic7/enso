@@ -19,25 +19,36 @@ in {
     };
 
     colors = {
-      bg = mkOption { type = types.str; default = "111111"; };
-      fg = mkOption { type = types.str; default = "eeeeee"; };
+        # --- BASIS-FARBEN ---
+      # Sehr dunkles, fast reines Schwarz für den Hintergrund und weiches Weiß für den Text.
+      bg = mkOption { type = types.str; default = "0a0a0a"; }; 
+      fg = mkOption { type = types.str; default = "e0e0e0"; }; 
       cursor = mkOption { type = types.str; default = "ffffff"; };
       
-      accent_primary = mkOption { type = types.str; default = "555555"; };
-      accent_secondary = mkOption { type = types.str; default = "777777"; };
-      accent_tertiary = mkOption { type = types.str; default = "999999"; };
-      inactive_border = mkOption { type = types.str; default = "333333"; };
+      # --- UI AKZENTE (Graustufen) ---
+      # Alles in der UI (Rahmen, Waybar-Linien, Fuzzel-Auswahl) bleibt streng monochrom.
+      # So sticht später jede Farbe, die du hinzufügst, sofort heraus.
+      accent_primary = mkOption { type = types.str; default = "888888"; };   # Aktive Fensterrahmen (Mittelgrau)
+      accent_secondary = mkOption { type = types.str; default = "aaaaaa"; }; # Highlights (Helleres Grau)
+      accent_tertiary = mkOption { type = types.str; default = "555555"; };  # Subtile Akzente
+      inactive_border = mkOption { type = types.str; default = "222222"; };  # Inaktive Fensterrahmen (Sehr dunkel)
 
-      # Terminal Farben (Neutrales Fallback)
+      # --- TERMINAL FARBEN (Semantisch) ---
+      # Im Terminal behalten wir nützliche Farben für ls, git, Warnungen und Fehler.
       term = {
-        black   = mkOption { type = types.str; default = "000000"; };
-        red     = mkOption { type = types.str; default = "cc0000"; };
-        green   = mkOption { type = types.str; default = "00cc00"; };
-        yellow  = mkOption { type = types.str; default = "cccc00"; };
-        blue    = mkOption { type = types.str; default = "0000cc"; };
-        magenta = mkOption { type = types.str; default = "cc00cc"; };
-        cyan    = mkOption { type = types.str; default = "00cccc"; };
-        white   = mkOption { type = types.str; default = "cccccc"; };
+        black   = mkOption { type = types.str; default = "1a1a1a"; }; # Hintergrund-Nuance
+        
+        # Die semantischen Ampel-Farben (kräftig und gut lesbar auf dunkel)
+        red     = mkOption { type = types.str; default = "ff5555"; }; # Fehler / Löschungen
+        yellow  = mkOption { type = types.str; default = "ffcc00"; }; # Warnungen / Änderungen
+        green   = mkOption { type = types.str; default = "44cc44"; }; # Erfolg / Hinzugefügtes
+        
+        # Blaue/Lila Töne für Ordner, Symlinks und Code-Syntax
+        blue    = mkOption { type = types.str; default = "4488ff"; }; 
+        magenta = mkOption { type = types.str; default = "cc55ff"; }; 
+        cyan    = mkOption { type = types.str; default = "00cccc"; }; 
+        
+        white   = mkOption { type = types.str; default = "eeeeee"; }; # Standard-Text im Terminal
       };
     };
   };
