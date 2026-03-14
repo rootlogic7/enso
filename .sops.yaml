@@ -2,7 +2,7 @@ keys:
   # Public Age Key 'host_nova'
   - &host_nova "age1j809mn4m29jve59c54flhz2vdpy6mxn8j230m64rg0238fs4vfysa4kj6x"
   # Public Age Key 'haku_nova'
-  - &haku_nova "age1eycv5vdxaze35ux64p8rmgvpdvfv3t4vtr8k7plfe3cwrd9edalsqu4l3u"
+  - &haku_nova "age1alqz5cynkzc38twuqzej003d5n6zjlwqqm8gncxk2udcjzk3fcpspzawgg"
   # Public Age Key 'host@quasar'
   - &host_quasar "age1ajcq7rpsjrcdq5gtgv04ga0lr4kua5medueg3vj53dtghtmdpu5sgyrh57"
   # Public Age Key 'sops-haku@quasar'
