@@ -1,0 +1,71 @@
+---
+- name: Configure Alpine Pi
+  hosts: pi
+  gather_facts: false
+
+  handlers:
+    - name: save alpine state
+      ansible.builtin.command: lbu commit -d
+      listen: "lbu commit"
+
+    # NEU: Handler, um den SSH-Dienst nach Änderungen neu zu starten
+    - name: restart sshd
+      ansible.builtin.service:
+        name: sshd
+        state: restarted
+
+  pre_tasks:
+    - name: Bootstrap Python for Ansible
+      ansible.builtin.raw: apk add --no-cache python3
+      changed_when: false
+      
+    - name: Gather facts explicitly
+      ansible.builtin.setup:
+
+  tasks:
+    - name: Update apk cache and install basic tools
+      community.general.apk:
+        name:
+          - nano
+          - htop
+          - curl
+          - e2fsprogs # NEU: Für das ext4 Dateisystem
+        state: present
+        update_cache: yes
+      notify: "lbu commit"
+
+    - name: Enforce strictly allowed SSH keys for root
+      ansible.posix.authorized_key:
+        user: root
+        state: present
+        key: "{{ lookup('file', '~/.ssh/id_ed25519_pi.pub') }}"
+        exclusive: yes
+      notify: "lbu commit"
+
+    # --- NEU: SSH Härten ---
+    - name: Disable SSH password authentication
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PasswordAuthentication'
+        line: 'PasswordAuthentication no'
+      notify: 
+        - restart sshd
+        - lbu commit
+
+    - name: Disable root password login (allow keys only)
+      ansible.builtin.lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: '^#?PermitRootLogin'
+        line: 'PermitRootLogin prohibit-password'
+      notify: 
+        - restart sshd
+        - lbu commit
+
+    # --- NEU: Daten-Partition mounten ---
+    - name: Mount data partition and add to fstab
+      ansible.posix.mount:
+        path: /mnt/data
+        src: /dev/mmcblk0p2
+        fstype: ext4
+        state: mounted
+      notify: "lbu commit"
