@@ -47,8 +47,9 @@
     
     users.haku = {
       imports = [
-        inputs.catppuccin.homeModules.catppuccin
+        #inputs.catppuccin.homeModules.catppuccin
         ../../home/haku.nix
+        ../../skins/custom.nix
       ];
     };
   };
