@@ -34,7 +34,8 @@
           - nano
           - htop
           - curl
-          - e2fsprogs # NEU: Für das ext4 Dateisystem
+          - e2fsprogs
+          - ncurses-terminfo
         state: present
         update_cache: yes
       notify: "lbu commit"

@@ -28,6 +28,12 @@
           identityFile = "~/.ssh/id_ed25519_main";
           identitiesOnly = true;
         };
+        "pi" = {
+          hostname = "192.168.178.69";
+          user = "root";
+          identityFile = "~/.ssh/id_ed25519_main";
+          identitiesOnly = true;
+        };
       };
     };
 
