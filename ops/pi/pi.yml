@@ -19,6 +19,11 @@
         name: sshd
         state: restarted
 
+    - name: restart fail2ban
+      ansible.builtin.service:
+        name: fail2ban
+        state: restarted
+
   pre_tasks:
     - name: Bootstrap Python for Ansible
       ansible.builtin.raw: apk add --no-cache python3
@@ -92,7 +97,8 @@
         enabled: yes
       notify: "lbu commit"
 
-    - name: Configure awall base policy
+    # --- awall Firewall (Erweitert für Syncthing & Gitea) ---
+    - name: Configure awall base policy with container ports
       ansible.builtin.copy:
         dest: /etc/awall/private/server.json
         content: |
@@ -106,10 +112,211 @@
               { "action": "accept" }
             ],
             "filter": [
-              { "in": "ext", "service": ["ssh", "ping"], "action": "accept" }
+              { "in": "ext", "service": ["ssh", "ping"], "action": "accept" },
+              { "in": "ext", "port": ["22000/tcp", "22000/udp", "21027/udp", "8384/tcp"], "action": "accept" },
+              { "in": "ext", "port": ["3000/tcp", "2222/tcp"], "action": "accept" }
             ]
           }
         mode: '0644'
       notify: 
         - activate awall
         - lbu commit
+
+    # --- Sicherheit: Fail2ban ---
+    - name: Install fail2ban
+      community.general.apk:
+        name: fail2ban
+        state: present
+      notify: "lbu commit"
+
+    - name: Configure fail2ban for SSH
+      ansible.builtin.copy:
+        dest: /etc/fail2ban/jail.local
+        content: |
+          [DEFAULT]
+          ignoreip = 127.0.0.1/8 192.168.178.0/24
+
+          [sshd]
+          enabled = true
+          port = ssh
+          filter = sshd
+          logpath = /var/log/messages
+          maxretry = 3
+          bantime = 3600
+          findtime = 600
+        mode: '0644'
+      notify: 
+        - restart fail2ban
+        - lbu commit
+
+    - name: Enable and start fail2ban service
+      ansible.builtin.service:
+        name: fail2ban
+        enabled: yes
+        state: started
+
+    # --- Repositories anpassen ---
+    - name: Enable Alpine community repository
+      ansible.builtin.replace:
+        path: /etc/apk/repositories
+        # Sucht nach der auskommentierten Community-Zeile und entfernt die Raute (#)
+        regexp: '^#\s*(http.*/community)$'
+        replace: '\1'
+      notify: "lbu commit"
+
+    # --- Rootless Podman: Basis-Pakete & Cgroups ---
+    - name: Install Podman and rootless dependencies
+      community.general.apk:
+        name:
+          - podman
+          - shadow           # Wichtig für usermod und subuid/subgid
+          - fuse-overlayfs   # Für rootless storage
+          - slirp4netns      # Für rootless networking
+          - iptables
+        state: present
+        update_cache: yes
+      notify: "lbu commit"
+
+    - name: Ensure cgroups service is enabled and started
+      ansible.builtin.service:
+        name: cgroups
+        enabled: yes
+        state: started
+      notify: "lbu commit"
+
+    # --- Rootless Podman: User & Mapping ---
+    - name: Create podman group
+      ansible.builtin.group:
+        name: podman
+        state: present
+      notify: "lbu commit"
+
+    - name: Create dedicated podman user
+      ansible.builtin.user:
+        name: podman_user
+        group: podman
+        shell: /bin/ash
+        create_home: yes
+        home: /home/podman_user
+      notify: "lbu commit"
+
+    # SubUID und SubGID weisen dem User "podman_user" 65.536 virtuelle IDs zu.
+    # Wenn der Container intern als "root" (UID 0) läuft, ist er auf dem Host in Wahrheit UID 100000.
+    - name: Define subuid for podman_user
+      ansible.builtin.lineinfile:
+        path: /etc/subuid
+        regexp: '^podman_user:'
+        line: 'podman_user:100000:65536'
+        create: yes
+      notify: "lbu commit"
+
+    - name: Define subgid for podman_user
+      ansible.builtin.lineinfile:
+        path: /etc/subgid
+        regexp: '^podman_user:'
+        line: 'podman_user:100000:65536'
+        create: yes
+      notify: "lbu commit"
+
+    # --- Schritt 3: Persistenz & Rechte ---
+    - name: Create persistent Syncthing data directory
+      ansible.builtin.file:
+        path: /mnt/data/syncthing
+        state: directory
+        owner: podman_user
+        group: podman
+        mode: '0755'
+      notify: "lbu commit"
+
+    # Da Rootless Podman eine Laufzeitumgebung (XDG_RUNTIME_DIR) braucht,
+    # legen wir dem User ein lokales Run-Verzeichnis an.
+    - name: Create local run directory for podman_user
+      ansible.builtin.file:
+        path: /home/podman_user/.run
+        state: directory
+        owner: podman_user
+        group: podman
+        mode: '0700'
+      notify: "lbu commit"
+
+    # --- Schritt 4: OpenRC Auto-Start Skript ---
+    - name: Create OpenRC init script for Syncthing
+      ansible.builtin.copy:
+        dest: /etc/init.d/syncthing
+        mode: '0755'
+        content: |
+          #!/sbin/openrc-run
+          
+          name="Syncthing (Rootless Podman)"
+          description="Runs Syncthing in a rootless container"
+          
+          # Wir nutzen su, um den Befehl als podman_user auszuführen.
+          # Das --rm sorgt dafür, dass alte Container-Reste beim Neustart gelöscht werden.
+          pidfile="/run/syncthing.pid"
+          command="/bin/su"
+          command_args="-l podman_user -c 'export XDG_RUNTIME_DIR=/home/podman_user/.run; podman run --rm --name syncthing -p 8384:8384 -p 22000:22000/tcp -p 22000:22000/udp -p 21027:21027/udp -v /mnt/data/syncthing:/var/syncthing docker.io/syncthing/syncthing:latest'"
+          command_background="yes"
+          
+          depend() {
+              need net localmount
+              after firewall
+          }
+          
+          stop_pre() {
+              ebegin "Stopping rootless podman container: syncthing"
+              su -l podman_user -c "export XDG_RUNTIME_DIR=/home/podman_user/.run; podman stop syncthing"
+              eend $?
+          }
+      notify: "lbu commit"
+
+    - name: Enable and start Syncthing OpenRC service
+      ansible.builtin.service:
+        name: syncthing
+        enabled: yes
+        state: started
+
+    # --- Gitea: Persistenz & Rechte ---
+    - name: Create persistent Gitea data directory
+      ansible.builtin.file:
+        path: /mnt/data/gitea
+        state: directory
+        owner: podman_user
+        group: podman
+        mode: '0755'
+      notify: "lbu commit"
+
+    # --- Gitea: OpenRC Auto-Start Skript ---
+    - name: Create OpenRC init script for Gitea
+      ansible.builtin.copy:
+        dest: /etc/init.d/gitea
+        mode: '0755'
+        content: |
+          #!/sbin/openrc-run
+          
+          name="Gitea (Rootless Podman)"
+          description="Runs Gitea in a rootless container"
+          
+          pidfile="/run/gitea.pid"
+          command="/bin/su"
+          # Gitea läuft auf Port 3000 (HTTP) und wir mappen den internen SSH-Port (22) auf 2222 nach außen.
+          # USER_UID und USER_GID stellen sicher, dass Gitea intern die Rechte sauber setzt.
+          command_args="-l podman_user -c 'export XDG_RUNTIME_DIR=/home/podman_user/.run; podman run --rm --name gitea -p 3000:3000 -p 2222:22 -e USER_UID=100000 -e USER_GID=100000 -v /mnt/data/gitea:/data docker.io/gitea/gitea:latest'"
+          command_background="yes"
+          
+          depend() {
+              need net localmount
+              after firewall
+          }
+          
+          stop_pre() {
+              ebegin "Stopping rootless podman container: gitea"
+              su -l podman_user -c "export XDG_RUNTIME_DIR=/home/podman_user/.run; podman stop gitea"
+              eend $?
+          }
+      notify: "lbu commit"
+
+    - name: Enable and start Gitea OpenRC service
+      ansible.builtin.service:
+        name: gitea
+        enabled: yes
+        state: started
