@@ -16,6 +16,13 @@ in {
       rounding = mkOption { type = types.int; default = 0; };
       border_size = mkOption { type = types.int; default = 1; };
       blur_size = mkOption { type = types.int; default = 0; };
+
+      nixvim_transparent = mkOption { 
+        type = types.bool; 
+        default = true; 
+        description = "Macht den Neovim Hintergrund transparent (Nutzt Terminal-Hintergrund)"; 
+      };
+
     };
 
     colors = {
@@ -115,6 +122,86 @@ in {
         background-color = "#${cfg.colors.bg}ee";
         text-color = "#${cfg.colors.fg}";
         border-color = "#${cfg.colors.accent_primary}";
+      };
+    };
+
+    # --- ROFI (Dient als GUI für unsere GPG-Passwortabfrage) ---
+    programs.rofi = {
+      enable = true;
+      theme = let
+        inherit (config.lib.formats.rasi) mkLiteral;
+      in {
+        "*" = {
+          background-color = mkLiteral "#${cfg.colors.bg}ff"; # ff = volle Deckkraft
+          text-color = mkLiteral "#${cfg.colors.fg}";
+        };
+        "window" = {
+          border = mkLiteral "${toString cfg.ui.border_size}px";
+          border-radius = mkLiteral "${toString cfg.ui.rounding}px";
+          border-color = mkLiteral "#${cfg.colors.accent_primary}";
+          padding = mkLiteral "10px";
+        };
+        "entry" = {
+          background-color = mkLiteral "#${cfg.colors.inactive_border}";
+        };
+      };
+    };
+
+    # --- GTK THEMING (Zwingt Desktop-Apps unseren Hintergrund auf) ---
+    gtk = {
+      enable = true;
+      theme = {
+        name = "Adwaita-dark";
+        package = pkgs.gnome-themes-extra;
+      };
+    };
+
+    # Wir überschreiben die Kern-Variablen von GTK3 und GTK4 mit unserem bg-Hexwert
+    xdg.configFile."gtk-3.0/gtk.css".text = ''
+      @define-color theme_bg_color #${cfg.colors.bg};
+      @define-color theme_base_color #${cfg.colors.bg};
+      @define-color window_bg_color #${cfg.colors.bg};
+    '';
+    
+    xdg.configFile."gtk-4.0/gtk.css".text = ''
+      @define-color theme_bg_color #${cfg.colors.bg};
+      @define-color theme_base_color #${cfg.colors.bg};
+      @define-color window_bg_color #${cfg.colors.bg};
+    '';
+
+    # --- FIREFOX THEMING ---
+    programs.firefox = {
+      enable = true;
+      profiles.haku = {
+        # Zwingt Firefox dazu, unsere custom CSS-Dateien zu akzeptieren
+        settings = {
+          "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
+          "browser.theme.content-theme" = 0; # Sagt Webseiten: "Ich bin im Darkmode"
+        };
+
+        # userChrome stylt die Benutzeroberfläche (Tabs, URL-Leiste, Menüs)
+        userChrome = ''
+          :root {
+            /* Überschreibt die Standard-Firefox-Farben mit unserem Hintergrund */
+            --toolbar-bgcolor: #${cfg.colors.bg} !important;
+            --lwt-accent-color: #${cfg.colors.bg} !important;
+            --tab-selected-bgcolor: #${cfg.colors.bg} !important;
+            --lwt-text-color: #${cfg.colors.fg} !important;
+          }
+          #navigator-toolbox {
+            background-color: #${cfg.colors.bg} !important;
+            border-bottom: none !important;
+          }
+        '';
+
+        # userContent stylt die Webseiten selbst (hier: Neuer Tab und leere Lade-Seiten)
+        userContent = ''
+          @-moz-document url("about:blank"), url("about:newtab"), url("about:home") {
+            body {
+              background-color: #${cfg.colors.bg} !important;
+            }
+          }
+        '';
       };
     };
   };

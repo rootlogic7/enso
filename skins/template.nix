@@ -23,6 +23,7 @@
     rounding = 0;         # Eckenabrundung in Pixeln (0 = eckig)
     border_size = 2;      # Rahmendicke für Fenster und Fuzzel
     blur_size = 0;        # Stärke des Hintergrund-Blurs in Hyprland
+    nixvim_transparent = false; # Nixvim background opacity toggle
   };
 
   horizon.theme.colors = {

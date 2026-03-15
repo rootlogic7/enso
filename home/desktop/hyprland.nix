@@ -39,7 +39,8 @@ in {
       # Wallpaper und komplexe Switcher sind hier vorerst entfernt.
       # Waybar wird ganz regulär gestartet.
       exec-once = [
-        "waybar"
+        "statusbar-switcher"
+        "${pkgs.swaybg}/bin/swaybg -c '#${theme.colors.bg}'"
       ];
 
       # 4. Design & Layout (Verknüpft mit der neuen Theme-Engine)

@@ -1,16 +1,28 @@
-{ pkgs, ... }:
-
-{
+{ config, pkgs, ... }:
+let
+  theme = config.horizon.theme;
+in {
   programs.nixvim = {
     enable = true;
     defaultEditor = true;
+    
+    # NEU: Wir injecten reines Lua, um den Hintergrund je nach Skin-Wahl anzupassen
+    extraConfigLua = if theme.ui.nixvim_transparent then ''
+      vim.cmd [[highlight Normal guibg=NONE ctermbg=NONE]]
+      vim.cmd [[highlight NormalNC guibg=NONE ctermbg=NONE]]
+      vim.cmd [[highlight EndOfBuffer guibg=NONE ctermbg=NONE]]
+    '' else ''
+      vim.cmd [[highlight Normal guibg=#${theme.colors.bg}]]
+      vim.cmd [[highlight NormalNC guibg=#${theme.colors.bg}]]
+      vim.cmd [[highlight EndOfBuffer guibg=#${theme.colors.bg}]]
+    '';
 
     # Grundeinstellungen für eine moderne IDE
     opts = {
       number = true;
       relativenumber = true;
       shiftwidth = 2;
-      tabstop = 2;
+      tabstop = 2;                     
       expandtab = true;
       smartindent = true;
       clipboard = "unnamedplus"; # System-Clipboard nutzen

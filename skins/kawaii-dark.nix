@@ -23,17 +23,18 @@
     rounding = 0;         # Eckenabrundung in Pixeln (0 = eckig)
     border_size = 2;      # Rahmendicke für Fenster und Fuzzel
     blur_size = 0;        # Stärke des Hintergrund-Blurs in Hyprland
+    nixvim_transparent = true;
   };
 
   horizon.theme.colors = {
     # --- BASIS-FARBEN (Hex-Werte ohne '#') ---
-    bg = "626d84";        # Hintergrund (Sehr dunkles Grau/Schwarz)
-    fg = "130c0e";        # Textfarbe (Weiß/Hellgrau)
+    bg = "1a1523";        # Hintergrund - Midnight Plum
+    fg = "e0e0e0";        # Textfarbe (Weiß/Hellgrau)
     cursor = "ffffff";    # Cursor-Farbe
     
     # --- UI AKZENTE (Graustufen als Startpunkt) ---
-    accent_primary = "754857";   # Aktive Fensterrahmen & Fokus-Elemente
-    accent_secondary = "754857"; # Highlights (z.B. Hover-Zustände)
+    accent_primary = "888888";   # Aktive Fensterrahmen & Fokus-Elemente
+    accent_secondary = "aaaaaa"; # Highlights (z.B. Hover-Zustände)
     accent_tertiary = "555555";  # Subtile Akzente (z.B. inaktive Workspaces)
     inactive_border = "222222";  # Inaktive Fensterrahmen
     

@@ -5,7 +5,6 @@
   home.packages = with pkgs; [
     hyprpaper
     hypridle
-    firefox
   ];
 
   programs.browserpass = {
