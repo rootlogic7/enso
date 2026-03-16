@@ -24,6 +24,9 @@
         name: fail2ban
         state: restarted
 
+    - name: reload sysctl
+      ansible.builtin.command: sysctl -p /etc/sysctl.d/99-rootless.conf
+
   pre_tasks:
     - name: Bootstrap Python for Ansible
       ansible.builtin.raw: apk add --no-cache python3
@@ -114,7 +117,8 @@
             "filter": [
               { "in": "ext", "service": ["ssh", "ping"], "action": "accept" },
               { "in": "ext", "port": ["22000/tcp", "22000/udp", "21027/udp", "8384/tcp"], "action": "accept" },
-              { "in": "ext", "port": ["3000/tcp", "2222/tcp"], "action": "accept" }
+              { "in": "ext", "port": ["3000/tcp", "2222/tcp"], "action": "accept" },
+              { "in": "ext", "port": ["53/tcp", "53/udp", "3001/tcp", "8080/tcp"], "action": "accept" }
             ]
           }
         mode: '0644'
@@ -239,6 +243,33 @@
         mode: '0700'
       notify: "lbu commit"
 
+    # --- AdGuard Home: Kernel & Persistenz ---
+    - name: Allow unprivileged users to bind to port 53 (DNS)
+      ansible.builtin.copy:
+        dest: /etc/sysctl.d/99-rootless.conf
+        content: |
+          net.ipv4.ip_unprivileged_port_start=53
+        mode: '0644'
+      notify: 
+        - reload sysctl
+        - lbu commit
+
+    - name: Apply sysctl settings immediately
+      ansible.builtin.command: sysctl -p /etc/sysctl.d/99-rootless.conf
+      changed_when: false
+
+    - name: Create persistent AdGuard Home directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: podman_user
+        group: podman
+        mode: '0755'
+      loop:
+        - /mnt/data/adguard/work
+        - /mnt/data/adguard/conf
+      notify: "lbu commit"
+
     # --- Schritt 4: OpenRC Auto-Start Skript ---
     - name: Create OpenRC init script for Syncthing
       ansible.builtin.copy:
@@ -317,5 +348,40 @@
     - name: Enable and start Gitea OpenRC service
       ansible.builtin.service:
         name: gitea
+        enabled: yes
+        state: started
+
+    # --- AdGuard Home: OpenRC Auto-Start Skript ---
+    - name: Create OpenRC init script for AdGuard Home
+      ansible.builtin.copy:
+        dest: /etc/init.d/adguard
+        mode: '0755'
+        content: |
+          #!/sbin/openrc-run
+          
+          name="AdGuard Home (Rootless Podman)"
+          description="Runs AdGuard Home in a rootless container"
+          
+          pidfile="/run/adguard.pid"
+          command="/bin/su"
+          # Wir mappen Setup-Port 3000 -> 3001 und Web-Port 80 -> 8080
+          command_args="-l podman_user -c 'export XDG_RUNTIME_DIR=/home/podman_user/.run; podman run --rm --name adguard -p 53:53/tcp -p 53:53/udp -p 3001:3000/tcp -p 8080:80/tcp -v /mnt/data/adguard/work:/opt/adguardhome/work -v /mnt/data/adguard/conf:/opt/adguardhome/conf docker.io/adguard/adguardhome:latest'"
+          command_background="yes"
+          
+          depend() {
+              need net localmount
+              after firewall
+          }
+          
+          stop_pre() {
+              ebegin "Stopping rootless podman container: adguard"
+              su -l podman_user -c "export XDG_RUNTIME_DIR=/home/podman_user/.run; podman stop adguard"
+              eend $?
+          }
+      notify: "lbu commit"
+
+    - name: Enable and start AdGuard Home OpenRC service
+      ansible.builtin.service:
+        name: adguard
         enabled: yes
         state: started
