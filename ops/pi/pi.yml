@@ -2,6 +2,7 @@
 - name: Configure Alpine Pi
   hosts: pi
   gather_facts: false
+  force_handlers: true
 
   handlers:
     - name: activate awall
@@ -25,17 +26,50 @@
     - name: reload sysctl
       ansible.builtin.command: sysctl -p /etc/sysctl.d/99-rootless.conf
 
+    - name: restart chronyd
+      ansible.builtin.service:
+        name: chronyd
+        state: restarted
+
+    - name: restart containers
+      ansible.builtin.service:
+        name: containers
+        state: restarted
+
   pre_tasks:
+    - name: Set system hostname permanently to 'pi'
+      ansible.builtin.hostname:
+        name: pi
+      notify: "lbu commit"
+
+    - name: Update /etc/hosts for correct localhost resolution
+      ansible.builtin.lineinfile:
+        path: /etc/hosts
+        regexp: '^127\.0\.0\.1\s+localhost'
+        line: '127.0.0.1       localhost pi'
+      notify: "lbu commit"
+
     - name: Bootstrap Python for Ansible
       ansible.builtin.raw: apk add --no-cache python3 || true
       changed_when: false
 
+    - name: Prevent udhcpc from overwriting resolv.conf
+      ansible.builtin.copy:
+        dest: /etc/udhcpc/udhcpc.conf
+        content: |
+          RESOLV_CONF="no"
+        mode: '0644'
+      notify: "lbu commit"
+
     - name: Ensure reliable fallback DNS is present
-      ansible.builtin.lineinfile:
-        path: /etc/resolv.conf
-        line: "nameserver 1.1.1.1"
-        insertbefore: BOF
-      
+      ansible.builtin.copy:
+        dest: /etc/resolv.conf
+        content: |
+          nameserver 1.1.1.1
+          nameserver 9.9.9.9
+        mode: '0644'
+      notify: "lbu commit"
+
     - name: Gather facts explicitly
       ansible.builtin.setup:
 
@@ -57,6 +91,18 @@
         name: chrony
         state: present
       notify: "lbu commit"
+
+    - name: Configure Chrony with hardcoded IP for initial sync (Cloudflare/PTB)
+      ansible.builtin.lineinfile:
+        path: /etc/chrony/chrony.conf
+        line: "{{ item }}"
+        insertafter: EOF
+      loop:
+        - "server 162.159.200.1 iburst"  # Cloudflare
+        - "server 192.53.103.108 iburst" # PTB Braunschweig
+      notify: 
+        - restart chronyd
+        - lbu commit
 
     - name: Enable and start chronyd service
       ansible.builtin.service:
@@ -133,8 +179,6 @@
             ],
             "filter": [
               { "in": "ext", "service": ["ssh", "ping"], "action": "accept" },
-              { "in": "ext", "port": [22000, 8384], "protocol": "tcp", "action": "accept" },
-              { "in": "ext", "port": [22000, 21027], "protocol": "udp", "action": "accept" },
               { "in": "ext", "port": [3000, 2222], "protocol": "tcp", "action": "accept" },
               { "in": "ext", "port": [53, 3001, 8080], "protocol": "tcp", "action": "accept" },
               { "in": "ext", "port": 53, "protocol": "udp", "action": "accept" }
@@ -270,19 +314,15 @@
         group: podman
         mode: '0755'
       loop:
-        - /mnt/data/syncthing
         - /mnt/data/gitea
         - /mnt/data/adguard/work
         - /mnt/data/adguard/conf
       notify: "lbu commit"
 
-    - name: Create local run directory for podman_user
+    - name: Ensure persistent local run directory is ABSENT to prevent Boot-ID mismatch
       ansible.builtin.file:
         path: /mnt/data/podman_user/.run
-        state: directory
-        owner: podman_user
-        group: podman
-        mode: '0700'
+        state: absent
       notify: "lbu commit"
 
     - name: Allow unprivileged users to bind to port 53 (DNS)
@@ -309,18 +349,6 @@
         content: |
           version: '3'
           services:
-            syncthing:
-              image: docker.io/syncthing/syncthing:latest
-              container_name: syncthing
-              restart: unless-stopped
-              ports:
-                - "8384:8384"
-                - "22000:22000/tcp"
-                - "22000:22000/udp"
-                - "21027:21027/udp"
-              volumes:
-                - /mnt/data/syncthing:/var/syncthing
-
             gitea:
               image: docker.io/gitea/gitea:latest
               container_name: gitea
@@ -343,36 +371,41 @@
               volumes:
                 - /mnt/data/adguard/work:/opt/adguardhome/work
                 - /mnt/data/adguard/conf:/opt/adguardhome/conf
-      notify: "lbu commit"
+      notify:
+        - restart containers
+        - lbu commit
 
-    - name: Create OpenRC init script for containers and API
+    - name: Create robust OpenRC init script for Podman Compose
       ansible.builtin.copy:
         dest: /etc/init.d/containers
         mode: '0755'
         content: |
           #!/sbin/openrc-run
           
-          name="Podman Compose & API"
-          description="Runs rootless Podman API and containers"
+          name="Podman Compose Services"
+          description="Runs rootless Podman containers via compose"
           
           depend() {
-              need net localmount
+              need net localmount cgroups
               use chronyd
               after firewall chronyd
           }
           
           start() {
-              ebegin "Syncing time (crucial for Raspberry Pi without RTC)"
-              # Zwingt den Pi, die Uhrzeit sofort abzugleichen, BEVOR Podman startet
+              ebegin "Forcing time sync via configured servers"
               chronyc makestep || true
+
+              ebegin "Fixing shared mount propagation for rootless Podman"
+              mount --make-rshared /
+
+              ebegin "Cleaning up persistent Podman state to prevent Boot-ID mismatch"
+              # Diese Zeile ist der Gamechanger! Sie löscht alte State-Dateien bei JEDEM Boot.
+              rm -rf /mnt/data/podman_user/.run
               
               ebegin "Preparing volatile runtime directory in RAM"
-              # Legt das Verzeichnis im flüchtigen RAM (/tmp) an, löst den Boot-ID Fehler für immer
               mkdir -p /tmp/podman_run
               chown podman_user:podman /tmp/podman_run
-              
-              ebegin "Starting Podman API daemon"
-              su -l podman_user -c "export XDG_RUNTIME_DIR=/tmp/podman_run; podman system service -t 0 &"
+              chmod 0700 /tmp/podman_run
               
               ebegin "Starting containers via podman-compose"
               su -l podman_user -c "export XDG_RUNTIME_DIR=/tmp/podman_run; podman-compose -f /mnt/data/docker-compose.yml up -d"
@@ -382,9 +415,6 @@
           stop() {
               ebegin "Stopping containers via podman-compose"
               su -l podman_user -c "export XDG_RUNTIME_DIR=/tmp/podman_run; podman-compose -f /mnt/data/docker-compose.yml down"
-              
-              ebegin "Stopping Podman API daemon"
-              pkill -u podman_user podman || true
               eend $?
           }
       notify: "lbu commit"
