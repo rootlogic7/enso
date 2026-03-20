@@ -9,5 +9,6 @@
     ./security.nix
     ./power.nix
     ./nvidia.nix
+    ./razer.nix
   ];
 }

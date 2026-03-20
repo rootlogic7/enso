@@ -35,6 +35,7 @@
     
     # Nvidia & Wayland Tweaks aktivieren
     hardware.nvidia.enable = true;
+    hardware.razer.enable = true;
   };
 
   # === Home Manager ===
