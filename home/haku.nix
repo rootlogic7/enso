@@ -8,6 +8,10 @@ with lib;
     username = "haku";
     homeDirectory = "/home/haku";
     stateVersion = "25.11";
+
+    sessionVariables = {
+      SOPS_AGE_KEY_FILE = "/home/haku/.config/sops/age/keys.txt";
+    };
   };
 
   horizon.theme.enable = true;

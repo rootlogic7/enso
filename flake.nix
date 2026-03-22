@@ -83,5 +83,25 @@
         ];
       };
     };
+
+    # NEU: Die magische DevShell für dein DevOps-Tooling!
+    devShells."x86_64-linux".default = 
+      let
+        pkgs = nixpkgs.legacyPackages."x86_64-linux";
+      in pkgs.mkShell {
+        # Diese Pakete stehen nur in der Shell zur Verfügung
+        packages = with pkgs; [
+          ansible
+          sops
+          sshpass
+        ];
+
+        # Ein kleiner Begrüßungstext, damit du weißt, dass du in der Shell bist
+        shellHook = ''
+          echo "🌌 Horizon DevOps Shell aktiviert!"
+          echo "Verfügbare Tools: ansible, sops, sshpass"
+          echo "Du kannst jetzt das Playbook für deinen Pi ausführen."
+        '';
+      };
   };
 }

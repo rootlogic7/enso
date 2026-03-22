@@ -181,6 +181,7 @@
               { "in": "ext", "service": ["ssh", "ping"], "action": "accept" },
               { "in": "ext", "port": [3000, 2222], "protocol": "tcp", "action": "accept" },
               { "in": "ext", "port": [53, 3001, 8080], "protocol": "tcp", "action": "accept" },
+          { "in": "ext", "port": [53, 3001, 3002, 5001, 8080], "protocol": "tcp", "action": "accept" },
               { "in": "ext", "port": 53, "protocol": "udp", "action": "accept" }
             ]
           }
@@ -319,6 +320,63 @@
         - /mnt/data/adguard/conf
       notify: "lbu commit"
 
+    - name: Create persistent data directories (Open permissions for new apps)
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: podman_user
+        group: podman
+        mode: '0777'
+      loop:
+        - /mnt/data/homepage
+        - /mnt/data/dockge
+        - /mnt/data/stacks/core
+      notify: "lbu commit"
+
+    - name: Generate Homepage .env securely from SOPS
+      ansible.builtin.copy:
+        dest: /mnt/data/homepage/.env
+        owner: podman_user
+        group: podman
+        mode: '0600' # Strikte Rechte: Nur podman_user darf lesen!
+        content: |
+          HOMEPAGE_VAR_ADGUARD_USER=haku
+          HOMEPAGE_VAR_ADGUARD_PASSWORD={{ lookup('community.sops.sops', '../../secrets/secrets.yaml', name='adguard_password') }}
+      notify: "lbu commit"
+
+    - name: Configure Homepage services dashboard
+      ansible.builtin.copy:
+        dest: /mnt/data/homepage/services.yaml
+        owner: podman_user
+        group: podman
+        mode: '0644'
+        content: |
+          {% raw %}
+          - Infrastructure:
+              - Dockge:
+                  icon: dockge.png
+                  href: http://192.168.178.69:5001
+                  description: Container Management
+
+          - Network:
+              - AdGuard Home:
+                  icon: adguard-home.png
+                  href: http://192.168.178.69:8080
+                  description: DNS Sinkhole
+                  widget:
+                    type: adguard
+                    url: http://192.168.178.69:8080
+                    username: "{{HOMEPAGE_VAR_ADGUARD_USER}}"
+                    password: "{{HOMEPAGE_VAR_ADGUARD_PASSWORD}}"
+
+          - Development:
+              - Gitea:
+                  icon: gitea.png
+                  href: http://192.168.178.69:3000
+                  description: Git Hosting
+          {% endraw %}
+      notify: "lbu commit"
+
     - name: Ensure persistent local run directory is ABSENT to prevent Boot-ID mismatch
       ansible.builtin.file:
         path: /mnt/data/podman_user/.run
@@ -342,12 +400,11 @@
     # --- Podman Compose Setup & API ---
     - name: Deploy docker-compose.yml
       ansible.builtin.copy:
-        dest: /mnt/data/docker-compose.yml
+        dest: /mnt/data/stacks/core/docker-compose.yml
         owner: podman_user
         group: podman
         mode: '0644'
         content: |
-          version: '3'
           services:
             gitea:
               image: docker.io/gitea/gitea:latest
@@ -371,6 +428,35 @@
               volumes:
                 - /mnt/data/adguard/work:/opt/adguardhome/work
                 - /mnt/data/adguard/conf:/opt/adguardhome/conf
+            homepage:
+              image: ghcr.io/gethomepage/homepage:latest
+              container_name: homepage
+              restart: unless-stopped
+              user: "0:0"
+              environment:
+                # NEU: Zwingend erforderliche Variable für v1.0+
+                - HOMEPAGE_ALLOWED_HOSTS=192.168.178.69:3002,192.168.178.69
+              env_file:
+                - /mnt/data/homepage/.env
+              ports:
+                - "3002:3000"
+              volumes:
+                - /mnt/data/homepage:/app/config
+                - /tmp/podman_run/podman.sock:/var/run/docker.sock:ro
+
+            dockge:
+              image: docker.io/louislam/dockge:latest
+              container_name: dockge
+              restart: unless-stopped
+              user: "0:0"
+              environment:
+                - DOCKER_HOST=unix:///var/run/docker.sock
+              ports:
+                - "5001:5001"
+              volumes:
+                - /tmp/podman_run/podman.sock:/var/run/docker.sock
+                - /mnt/data/dockge:/app/data
+                - /mnt/data/stacks:/opt/stacks
       notify:
         - restart containers
         - lbu commit
@@ -399,22 +485,31 @@
               mount --make-rshared /
 
               ebegin "Cleaning up persistent Podman state to prevent Boot-ID mismatch"
-              # Diese Zeile ist der Gamechanger! Sie löscht alte State-Dateien bei JEDEM Boot.
               rm -rf /mnt/data/podman_user/.run
               
               ebegin "Preparing volatile runtime directory in RAM"
               mkdir -p /tmp/podman_run
               chown podman_user:podman /tmp/podman_run
-              chmod 0700 /tmp/podman_run
+              chmod 0755 /tmp/podman_run
+             
+              ebegin "Starting Podman API socket for Dockge/Homepage"
+              su -l podman_user -c "export XDG_RUNTIME_DIR=/tmp/podman_run; podman system service -t 0 unix:///tmp/podman_run/podman.sock &"
+              
+              # Kurze Pause, damit der Socket erstellt wird, bevor die Container starten
+              sleep 2
+              chmod 0666 /tmp/podman_run/podman.sock || true
               
               ebegin "Starting containers via podman-compose"
-              su -l podman_user -c "export XDG_RUNTIME_DIR=/tmp/podman_run; podman-compose -f /mnt/data/docker-compose.yml up -d"
+              su -l podman_user -c "export XDG_RUNTIME_DIR=/tmp/podman_run; podman-compose -f /mnt/data/stacks/core/docker-compose.yml up -d"
               eend $?
           }
           
           stop() {
               ebegin "Stopping containers via podman-compose"
-              su -l podman_user -c "export XDG_RUNTIME_DIR=/tmp/podman_run; podman-compose -f /mnt/data/docker-compose.yml down"
+              su -l podman_user -c "export XDG_RUNTIME_DIR=/tmp/podman_run; podman-compose -f /mnt/data/stacks/core/docker-compose.yml down"
+
+              ebegin "Stopping Podman API socket"
+              pkill -u podman_user -f "podman system service" || true
               eend $?
           }
       notify: "lbu commit"
