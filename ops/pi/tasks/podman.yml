@@ -1,0 +1,209 @@
+---
+# 1. Basis-Setup & Installation
+- name: Install Podman, Docker Compose v2 and rootless dependencies
+  community.general.apk:
+    name:
+      - podman
+      - docker-cli
+      - docker-cli-compose # <-- OPTIMIERUNG: Offizielles Docker Compose Plugin
+      - podman-tui
+      - shadow
+      - fuse-overlayfs
+      - slirp4netns
+      - iptables
+    state: present
+    update_cache: yes
+  notify: "lbu commit"
+
+- name: Remove outdated podman-compose
+  community.general.apk:
+    name: podman-compose
+    state: absent
+  notify: "lbu commit"
+
+- name: Ensure cgroups service is enabled and started
+  ansible.builtin.service:
+    name: cgroups
+    enabled: yes
+    state: started
+  notify: "lbu commit"
+
+# 2. User Setup
+- name: Create podman group
+  ansible.builtin.group:
+    name: podman
+    state: present
+  notify: "lbu commit"
+
+- name: Create dedicated podman user
+  ansible.builtin.user:
+    name: podman_user
+    group: podman
+    shell: /bin/ash
+    create_home: yes
+    home: /mnt/data/podman_user
+  notify: "lbu commit"
+
+- name: Define subuid/subgid for podman_user
+  ansible.builtin.lineinfile:
+    path: "{{ item }}"
+    regexp: '^podman_user:'
+    line: 'podman_user:100000:65536'
+    create: yes
+  loop:
+    - /etc/subuid
+    - /etc/subgid
+  notify: "lbu commit"
+
+- name: Allow unprivileged users to bind to port 53 (DNS)
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/99-rootless.conf
+    content: |
+      net.ipv4.ip_unprivileged_port_start=53
+    mode: '0644'
+  notify: 
+    - reload sysctl
+    - lbu commit
+
+# 3. Verzeichnisse & Secrets
+- name: Create persistent data directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: podman_user
+    group: podman
+    mode: '0755'
+  loop:
+    - /mnt/data/gitea
+    - /mnt/data/adguard/work
+    - /mnt/data/adguard/conf
+
+- name: Create persistent data directories (Apps)
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: podman_user
+    group: podman
+    mode: '0777'
+  loop:
+    - /mnt/data/homepage
+    - /mnt/data/dockge
+    - /mnt/data/stacks/core
+
+- name: Remove plaintext .env file if exists
+  ansible.builtin.file:
+    path: /mnt/data/stacks/core/.env
+    state: absent
+
+- name: Create file-backed secret for AdGuard
+  ansible.builtin.copy:
+    dest: /mnt/data/stacks/core/.adguard_secret
+    owner: podman_user
+    group: podman
+    mode: '0600'
+    content: "{{ lookup('community.sops.sops', '../../secrets/secrets.yaml', name='adguard_password') }}"
+  notify: "lbu commit"
+
+# 4. Deployment
+- name: Deploy docker-compose.yml from files
+  ansible.builtin.copy:
+    src: files/docker-compose.yml
+    dest: /mnt/data/stacks/core/docker-compose.yml
+    owner: podman_user
+    group: podman
+    mode: '0644'
+  notify:
+    - restart containers
+    - lbu commit
+
+- name: Configure Homepage services dashboard
+  ansible.builtin.copy:
+    dest: /mnt/data/homepage/services.yaml
+    owner: podman_user
+    group: podman
+    mode: '0644'
+    content: |
+      {% raw %}
+      - Infrastructure:
+          - Dockge:
+              icon: dockge.png
+              href: http://192.168.178.69:5001
+              description: Container Management
+
+      - Network:
+          - AdGuard Home:
+              icon: adguard-home.png
+              href: http://192.168.178.69:8080
+              description: DNS Sinkhole
+              widget:
+                type: adguard
+                url: http://adguard:80
+                username: "{{HOMEPAGE_VAR_ADGUARD_USER}}"
+                password: "{{HOMEPAGE_VAR_ADGUARD_PASSWORD}}"
+
+      - Development:
+          - Gitea:
+              icon: gitea.png
+              href: http://192.168.178.69:3000
+              description: Git Hosting
+      {% endraw %}
+  notify: "lbu commit"
+
+# 5. OpenRC Script (OPTIMIERT auf natives Docker Compose)
+- name: Create robust OpenRC init script for Docker Compose
+  ansible.builtin.copy:
+    dest: /etc/init.d/containers
+    mode: '0755'
+    content: |
+      #!/sbin/openrc-run
+      
+      name="Podman Compose Services"
+      description="Runs rootless Podman containers via native docker-compose"
+      
+      depend() {
+          need net localmount cgroups
+          use chronyd
+          after firewall chronyd
+      }
+      
+      start() {
+          ebegin "Forcing time sync via configured servers"
+          chronyc makestep || true
+
+          ebegin "Fixing shared mount propagation for rootless Podman"
+          mount --make-rshared /
+
+          ebegin "Cleaning up persistent Podman state to prevent Boot-ID mismatch"
+          rm -rf /mnt/data/podman_user/.run
+          
+          ebegin "Preparing volatile runtime directory in RAM"
+          mkdir -p /tmp/podman_run
+          chown podman_user:podman /tmp/podman_run
+          chmod 0755 /tmp/podman_run
+         
+          ebegin "Starting Podman API socket for Dockge/Homepage"
+          su -l podman_user -c "export XDG_RUNTIME_DIR=/tmp/podman_run; podman system service -t 0 unix:///tmp/podman_run/podman.sock &"
+          
+          sleep 2
+          chmod 0666 /tmp/podman_run/podman.sock || true
+          
+          ebegin "Starting containers via native docker compose plugin"
+          su -l podman_user -c "export XDG_RUNTIME_DIR=/tmp/podman_run; export DOCKER_HOST=unix:///tmp/podman_run/podman.sock; docker compose -f /mnt/data/stacks/core/docker-compose.yml up -d"
+          eend $?
+      }
+      
+      stop() {
+          ebegin "Stopping containers via native docker compose plugin"
+          su -l podman_user -c "export XDG_RUNTIME_DIR=/tmp/podman_run; export DOCKER_HOST=unix:///tmp/podman_run/podman.sock; docker compose -f /mnt/data/stacks/core/docker-compose.yml down"
+
+          ebegin "Stopping Podman API socket"
+          pkill -u podman_user -f "podman system service" || true
+          eend $?
+      }
+  notify: "lbu commit"
+
+- name: Enable and start containers OpenRC service
+  ansible.builtin.service:
+    name: containers
+    enabled: yes
+    state: started
