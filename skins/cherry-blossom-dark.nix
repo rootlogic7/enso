@@ -20,6 +20,11 @@
     fastfetch_color = "magenta";
 
     wallpaper = ./wallpaper/cherry-blossom-dark.jpg;
+
+    homepage = {
+      gaps_out = 25;      # Sehr große Ränder, um das Wallpaper in Szene zu setzen
+      opacity = "0.85";   # Lässt das Wallpaper sanft durch die Dashboard-Karten scheinen
+    };
   };
 
   horizon.theme.colors = {

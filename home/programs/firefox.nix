@@ -45,5 +45,25 @@
       };
 
     };
+
+    profiles.dashboard = {
+      id = 1;
+      name = "dashboard";
+      
+      settings = {
+        "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
+        "browser.theme.content-theme" = 0;
+        "browser.backspace_action" = 0;
+
+        "browser.link.open_newwindow" = 1;
+      };
+      
+      # Das ist die Magie: Wir schalten die gesamte Kopfzeile ab!
+      userChrome = ''
+        #navigator-toolbox {
+          display: none !important;
+        }
+      '';
+    };
   };
 }

@@ -40,6 +40,18 @@ in {
         description = "Pfad zum Wallpaper-Bild für dieses Theme";
       };
 
+      homepage = {
+        gaps_out = mkOption { 
+          type = types.int; 
+          default = 8; 
+          description = "Abstand (Gaps) speziell für Workspace 1 (Dashboard)"; 
+        };
+        opacity = mkOption { 
+          type = types.str; 
+          default = "1.0"; 
+          description = "Transparenz des Homepage-Fensters (z.B. '0.85')";
+        };
+      };
     };
 
     colors = {

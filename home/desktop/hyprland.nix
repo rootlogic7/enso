@@ -45,8 +45,13 @@ in {
          else "${pkgs.swaybg}/bin/swaybg -c '#${theme.colors.bg}'")
         "systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"
         "dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP"
+
+        "firefox --new-instance --profile ~/.mozilla/firefox/dashboard --name dashboard http://192.168.178.69:3002"
       ];
 
+      workspace = [
+        "1, gapsout:${toString theme.ui.homepage.gaps_out}"
+      ];
       # 4. Design & Layout (Verknüpft mit der neuen Theme-Engine)
       general = {
         gaps_in = 4;
@@ -103,6 +108,10 @@ in {
       windowrule = [
         "float on, match:class ^(fuzzel)$"
         "float on, match:title ^(Picture-in-Picture)$"
+
+        "workspace 1 silent, match:class ^(dashboard)$"
+        "opacity ${theme.ui.homepage.opacity} ${theme.ui.homepage.opacity}, match:class ^(dashboard)$"
+        "border_size 0, match:class ^(dashboard)$"
       ];
 
       # 7. Binds (Funktional identisch, Theme-Switcher entfernt)
