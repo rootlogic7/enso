@@ -1,11 +1,12 @@
 # home/profiles/core.nix
-{ pkgs, inputs, ... }:
+{ pkgs, inputs, lib, ... }:
 
 {
   home.packages = with pkgs; [
     yazi
     wget
     curl
+    ssh-to-age
   ];
 
   programs = {
@@ -59,6 +60,15 @@
     defaultCacheTtl = 28800;
     maxCacheTtl = 28800;
   };
+
+  # Automatische Generierung des SOPS Age-Keys aus dem SSH-Key
+  home.activation.generateAgeKey = lib.hm.dag.entryAfter ["writeBoundary"] ''
+    if [ -f "$HOME/.ssh/id_ed25519_main" ] && [ ! -f "$HOME/.config/sops/age/keys.txt" ]; then
+      $DRY_RUN_CMD mkdir -p "$HOME/.config/sops/age"
+      $DRY_RUN_CMD ${pkgs.ssh-to-age}/bin/ssh-to-age -private-key -i "$HOME/.ssh/id_ed25519_main" > "$HOME/.config/sops/age/keys.txt"
+      $DRY_RUN_CMD chmod 600 "$HOME/.config/sops/age/keys.txt"
+    fi
+  '';
 
   imports = [
     inputs.nixvim.homeModules.nixvim

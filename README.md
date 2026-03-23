@@ -1,26 +1,44 @@
-# 🌌 horizon - NixOS Flotilla
+# horizon
 
-> "Past the event horizon, nothing returns."
+Deklarative NixOS- und Ansible-Konfiguration.
 
-Dieses Repository enthält die deklarative Konfiguration für meine Maschinen-Flotte, basierend auf **NixOS Flakes**. Das Kernkonzept des Laptops (`nova`) ist **Erase your Darlings (Impermanence)**: Bei jedem Neustart überschreitet das System seinen Ereignishorizont. Das Root-Dateisystem (`/`) wird komplett gelöscht und aus einem leeren Btrfs-Snapshot neu generiert. Nur explizit definierte Daten überleben.
+## Hosts
+* `nova` (192.168.178.22): ThinkPad T470. NixOS, Btrfs auf LUKS, Impermanence.
+* `quasar` (192.168.178.21): Workstation. NixOS, ZFS auf LUKS, Impermanence.
+* `pi` (192.168.178.20): Alpine Linux. Ansible, awall (restricted to .21 & .22), Rootless Podman.
 
-## 🪐 Die Flotte
-* **`nova` (Laptop):** Lenovo ThinkPad T470 (Intel i5, 8GB RAM). Eine grelle, flüchtige Sternenexplosion. Portabel, schnell, wird bei jedem Shutdown ausgelöscht.
-* **`quasar` (Desktop):** High-End PC (Geplant). Purer Energiekern, massiv und leistungsstark.
-* **`pulsar` (Server):** Headless Server (Geplant). Rotiert stumm in der Dunkelheit. Bewahrer der persistenten Daten.
+## Secrets & State (Impermanence)
+* `/` und `/home` sind flüchtig (ZFS/Btrfs blank snapshot rollback bei Boot).
+* State in `/persist` (NetworkManager, SOPS, SSH-Host-Keys).
+* Verschlüsselung via `sops-nix` (`secrets/secrets.yaml`).
+* SOPS Age-Key wird via Home-Manager Activation automatisch aus `~/.ssh/id_ed25519_main` generiert.
 
-## 🛠️ Tech Stack (`nova`)
-* **OS:** NixOS Unstable (25.11+)
-* **Deployment:** Flakes & Home-Manager
-* **Dateisystem:** Btrfs mit LUKS Full Disk Encryption (via Disko)
-* **Desktop:** Hyprland (Wayland)
-* **Terminal:** Foot, Zellij, Nushell, Starship
-* **Editor:** Neovim (Nixvim)
-* **Theme:** Catppuccin Mocha (Kosmische Ästhetik)
+## Installation / Bootstrap (NixOS)
+1. NixOS Live-ISO booten.
+2. Repo klonen und in das Verzeichnis wechseln.
+3. LUKS-Passwort für Disko temporär setzen:
+   ```bash
+   echo -n "passwort" > /tmp/secret.Age-Key
+   ```
+4. Disko Partitionierung (ACHTUNG: Löscht Ziel-Datenträger):
+   ```bash
+   sudo nix run github:nix-community/disko -- --mode disko ./hosts/<hostname>/disko.nix
+   ```
+5. NixOS installieren:
+   ```bash
+   sudo nixos-install --flake .#<hostname>
+   ```
+6. Reboot ins neue System.
+7. Privaten SSH-Key (`id_ed25519_main`) nach `~/.ssh/` kopieren.
+8. Home-Manager/NixOS rebuild ausführen (generiert den Age-Key für SOPS).
 
-## 🚀 Bootstrap (`nova`)
-*(Kurzanleitung für die Neuinstallation)*
-1. NixOS Live-USB booten.
-2. LUKS-Passwort setzen: `echo -n "passwort" > /tmp/secret.key`
-3. Disko Partitionierung ausführen: `sudo nix run github:nix-community/disko -- --mode disko /pfad/zu/horizon/hosts/nova/disko.nix`
-4. System installieren: `sudo nixos-install --flake .#nova`
+## Server Deployment (Ansible / Pi)
+1. In den Flake-Ordner wechseln.
+2. DevShell starten (lädt Ansible, SOPS, sshpass):
+   ```bash
+   nix develop
+   ```
+3. Playbook ausführen:
+   ```bash
+   ansible-playbook ops/pi/pi.yml -K
+   ```
