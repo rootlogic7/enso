@@ -1,4 +1,14 @@
 services:
+  # 1. Der einfache, stabile Proxy OHNE File-Descriptor Limits
+  #socket-proxy:
+  #  image: alpine/socat
+  #  container_name: socket-proxy
+  #  restart: unless-stopped
+  #  user: "0:0"
+  #  command: TCP4-LISTEN:2375,fork,reuseaddr UNIX-CONNECT:/var/run/docker.sock
+  #  volumes:
+  #    - /tmp/podman_run/podman.sock:/var/run/docker.sock
+
   gitea:
     image: docker.io/gitea/gitea:latest
     container_name: gitea
@@ -26,20 +36,20 @@ services:
     image: ghcr.io/gethomepage/homepage:latest
     container_name: homepage
     restart: unless-stopped
+    user: "0:0" # <- Beibehalten für sicheren Secret-Zugriff
     depends_on:
       - adguard
-    user: "0:0"
     environment:
       - HOMEPAGE_ALLOWED_HOSTS=192.168.178.69:3002,192.168.178.69
       - HOMEPAGE_VAR_ADGUARD_USER=haku
-      - HOMEPAGE_VAR_ADGUARD_PASSWORD_FILE=/run/secrets/adguard_password
+      - HOMEPAGE_VAR_ADGUARD_PASSWORD__FILE=/run/secrets/adguard_password
     secrets:
       - adguard_password
     ports:
       - "3002:3000"
     volumes:
       - /mnt/data/homepage:/app/config
-      - /tmp/podman_run/podman.sock:/var/run/docker.sock:ro
+      - /tmp/podman_run/podman.sock:/var/run/docker.sock
 
   dockge:
     image: docker.io/louislam/dockge:latest

@@ -6,7 +6,6 @@
       - podman
       - docker-cli
       - docker-cli-compose # <-- OPTIMIERUNG: Offizielles Docker Compose Plugin
-      - podman-tui
       - shadow
       - fuse-overlayfs
       - slirp4netns
@@ -74,7 +73,7 @@
     state: directory
     owner: podman_user
     group: podman
-    mode: '0755'
+    mode: '0750'
   loop:
     - /mnt/data/gitea
     - /mnt/data/adguard/work
@@ -103,7 +102,7 @@
     owner: podman_user
     group: podman
     mode: '0600'
-    content: "{{ lookup('community.sops.sops', '../../secrets/secrets.yaml', name='adguard_password') | trim }}"
+    content: "{{ (lookup('community.sops.sops', '../../secrets/secrets.yaml') | from_yaml).adguard_password | trim }}"
   notify: "lbu commit"
 
 # 4. Deployment
@@ -118,6 +117,17 @@
     - restart containers
     - lbu commit
 
+- name: Configure Homepage docker integration
+  ansible.builtin.copy:
+    dest: /mnt/data/homepage/docker.yaml
+    owner: podman_user
+    group: podman
+    mode: '0644'
+    content: |
+      podman-pi:
+        socket: /var/run/docker.sock
+  notify: "lbu commit"
+
 - name: Configure Homepage services dashboard
   ansible.builtin.copy:
     dest: /mnt/data/homepage/services.yaml
@@ -131,12 +141,16 @@
               icon: dockge.png
               href: http://192.168.178.69:5001
               description: Container Management
+              server: podman-pi
+              container: dockge
 
       - Network:
           - AdGuard Home:
               icon: adguard-home.png
               href: http://192.168.178.69:8080
               description: DNS Sinkhole
+              server: podman-pi
+              container: adguard
               widget:
                 type: adguard
                 url: http://adguard:80
@@ -148,6 +162,8 @@
               icon: gitea.png
               href: http://192.168.178.69:3000
               description: Git Hosting
+              server: podman-pi
+              container: gitea
       {% endraw %}
   notify: "lbu commit"
 
@@ -181,12 +197,13 @@
           ebegin "Preparing volatile runtime directory in RAM"
           mkdir -p /tmp/podman_run
           chown podman_user:podman /tmp/podman_run
-          chmod 0755 /tmp/podman_run
+          chmod 0700 /tmp/podman_run
          
           ebegin "Starting Podman API socket for Dockge/Homepage"
           su -l podman_user -c "export XDG_RUNTIME_DIR=/tmp/podman_run; podman system service -t 0 unix:///tmp/podman_run/podman.sock &"
           
           sleep 2
+          chown podman_user:podman /tmp/podman_run/podman.sock || true
           chmod 0666 /tmp/podman_run/podman.sock || true
           
           ebegin "Starting containers via native docker compose plugin"
@@ -209,3 +226,15 @@
     name: containers
     enabled: yes
     state: started
+
+- name: Repair ownership of persistent data volumes for Rootless Podman
+  ansible.builtin.shell: |
+    # Stoppe die fehlerhaften Container
+    su -l podman_user -c "export XDG_RUNTIME_DIR=/tmp/podman_run; export DOCKER_HOST=unix:///tmp/podman_run/podman.sock; docker compose -f /mnt/data/stacks/core/docker-compose.yml stop gitea adguard"
+
+    # Gitea: Nutzt intern den User 'git' (UID 1000)
+    su -l podman_user -c "podman unshare chown -R 1000:1000 /mnt/data/gitea"
+
+    # Starte die reparierten Container
+    su -l podman_user -c "export XDG_RUNTIME_DIR=/tmp/podman_run; export DOCKER_HOST=unix:///tmp/podman_run/podman.sock; docker compose -f /mnt/data/stacks/core/docker-compose.yml start gitea adguard"
+  ignore_errors: yes
