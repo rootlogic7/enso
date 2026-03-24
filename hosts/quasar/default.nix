@@ -50,6 +50,7 @@
         inputs.catppuccin.homeModules.catppuccin
         ../../home/haku.nix
         ../../skins/cherry-blossom-dark.nix
+        ./waybar.nix
       ];
     };
   };

@@ -39,7 +39,6 @@ in {
       # Wallpaper und komplexe Switcher sind hier vorerst entfernt.
       # Waybar wird ganz regulär gestartet.
       exec-once = [
-        "statusbar-switcher"
         (if theme.ui.wallpaper != null 
          then "${pkgs.swaybg}/bin/swaybg -i ${theme.ui.wallpaper} -m fill"
          else "${pkgs.swaybg}/bin/swaybg -c '#${theme.colors.bg}'")
