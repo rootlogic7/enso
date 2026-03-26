@@ -65,4 +65,13 @@
 
   # Damit Nushell als Login-Shell funktioniert, muss sie systemweit aktiviert sein
   environment.shells = [ pkgs.nushell ];
+
+  # --- Container & Virtualisierung ---
+  virtualisation.podman = {
+    enable = true;
+    # Optional: Macht 'docker' als Befehl verfügbar, nutzt aber im Hintergrund podman
+    dockerCompat = true; 
+  };
+
+  virtualisation.containers.registries.insecure = [ "192.168.178.10:3000" ];
 }
