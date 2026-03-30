@@ -24,8 +24,9 @@
   horizon = {
     desktop.enable = true;
     desktop.monitors = [
-      "eDP-1,1366x768@60,0x0,1"
-      "DP-6,1280x1024@60,0x-1024,1"
+      "DP-6, preferred, 0x0, 1"
+      "eDP-1, preferred, 0x1024, 1"
+      ", preferred, auto, 1"
     ];
 
     impermanence.enable = true;

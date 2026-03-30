@@ -21,12 +21,6 @@ let
     "backlight" = {
       scroll-step = 5.0;
     };
-    
-    # Ein Modul, das NUR auf Nova existiert
-    "custom/laptop_mode" = {
-      format = "";
-      tooltip-format = "Portable Mode Active";
-    };
   };
 
   # 3. Definition der einzelnen Leisten (Bars)
@@ -40,8 +34,8 @@ let
     height = 24;
     spacing = 6;
     modules-left = [ "hyprland/workspaces#system" "hyprland/workspaces#server" "hyprland/workspaces" ];
-    modules-center = [ "hyprland/window" ];
-    modules-right = [ "custom/laptop_mode" "idle_inhibitor" "tray" "clock" "custom/power" ];
+    modules-center = [ "custom/context" "hyprland/window" ];
+    modules-right = [ "custom/display_mode" "idle_inhibitor" "tray" "clock" "custom/power" ];
   } // novaModules;
 
   # 3.2 Portable Bottom (Laptop-Bildschirm, unten)
@@ -63,8 +57,8 @@ let
     layer = "top";
     position = "top";
     height = 24;
-    modules-left = [ "custom/nixos" "hyprland/workspaces" ];
-    modules-center = [ "hyprland/window" ];
+    modules-left = [ "hyprland/workspaces#system" "hyprland/workspaces#server" "hyprland/workspaces" ];
+    modules-center = [ "custom/context" "hyprland/window" ];
     modules-right = [ "idle_inhibitor" "tray" "network" "cpu" "memory" "pulseaudio" "clock" ];
   } // novaModules;
 
@@ -92,7 +86,6 @@ in {
         color: #${theme.colors.fg};
       }
       
-      /* Linien-Design für die Bars */
       window#waybar.portable-top, 
       window#waybar.docked-top { 
         border-bottom: ${toString theme.ui.border_size}px solid #${theme.colors.accent_primary};
@@ -103,7 +96,6 @@ in {
       }
       
       /* Workspaces */
-
       /* --- WORKSPACES GENERAL --- */
       #workspaces {
         padding: 0 4px;
@@ -114,49 +106,45 @@ in {
         min-width: 28px;
 
         background: transparent;
+        background-color: transparent;
         box-shadow: none;
         text-shadow: none;
         border: none;
         border-radius: ${toString theme.ui.rounding}px; 
         transition: all 0.2s ease;
 
-        /* ZUSTAND 1: LEER (Standard-Ansicht für persistente Workspaces) */
-        color: #${theme.colors.accent_tertiary}; 
+        /* ZUSTAND 1: LEER */
+        color: #${theme.colors.inactive_border}; 
         font-size: 13px;
       }
       
       #workspaces button:hover {
         color: #${theme.colors.accent_secondary};
-        background-color: #${theme.colors.inactive_border}; /* Dezenter Hintergrund-Highlight */
-        box-shadow: none;
-        text-shadow: none;
+        background: transparent;
+        background-color: transparent;
       }
       
       #workspaces button:not(.empty):not(.active) {
-        color: #${theme.colors.fg}; /* Weiß/Hell, damit man sofort sieht: Hier läuft was */
+        color: #${theme.colors.accent_tertiary};
       }
 
-      /* Belegte, aber nicht aktive Workspaces
-      #workspaces button:not(.empty) {
-        color: #${theme.colors.inactive_border}; 
-      }*/
-      
       #workspaces button.active { 
         color: #${theme.colors.accent_primary};
-        background-color: transparent;
         font-weight: bold;
-        box-shadow: none;
       }
 
       /* --- SPECIAL WORKSPACES (System & Server) --- */
-      /* Das '#special' am Ende erlaubt es uns, dieses Modul separat zu stylen */
       #workspaces.system {
-        padding-right: 0; /* Rückt näher an das Server-Icon */
+        padding-right: 0;
+        margin-top: 4px;
+        margin-bottom: 4px;
       }
 
       #workspaces.server {
         padding-left: 0;
-        border-right: 1px solid #${theme.colors.inactive_border};
+        border-right: 1px solid #${theme.colors.accent_tertiary};
+        margin-top: 4px;    
+        margin-bottom: 4px;
         margin-right: 8px; 
         padding-right: 8px;
       }
@@ -170,7 +158,77 @@ in {
       
       #workspaces.system button.active,
       #workspaces.server button.active {
-        color: #${theme.colors.fg}; 
+        color: #${theme.colors.accent_primary}; 
+      }
+      
+      /* --- USER/HOST CONTEXT PILLE --- */
+      #custom-context {
+        padding: 0 12px;
+        margin-right: 8px;
+        margin-top: 4px;    
+        margin-bottom: 4px;
+        border-radius: ${toString theme.ui.rounding}px;
+        font-weight: bold;
+        min-width: 140px;
+      }
+
+      /* Zustand 1: Lokal (Normaler Zustand) */
+      #custom-context.local {
+        background-color: transparent; 
+        color: #${theme.colors.accent_tertiary};
+        border: 1px solid #${theme.colors.accent_tertiary};
+      }
+
+      /* Zustand 2: SSH Verbindung (Alarm / Highlight!) */
+      /* Sobald du auf einen Pi per SSH gehst, springt diese Pille ins Auge */
+      #custom-context.ssh {
+        background-color: #${theme.colors.accent_primary}; 
+        color: #${theme.colors.bg}; /* Dunkler Text auf leuchtender Akzentfarbe */
+        border: 1px solid #${theme.colors.accent_primary};
+      }
+
+      /* --- WINDOW TITLE (Mitte) --- */
+      #window {
+        min-width: 400px;
+        padding: 0 12px;
+        margin-top: 4px;    
+        margin-bottom: 4px;
+        background-color: #${theme.colors.accent_tertiary};
+        color: #${theme.colors.bg};
+        border-radius: ${toString theme.ui.rounding}px;
+        font-weight: normal;
+      }
+
+      #window.empty {
+        color: transparent;
+        background-color: transparent;
+      }
+
+      /* --- DISPLAY MODE INDICATOR --- */
+      #custom-display_mode {
+        padding: 0 10px;
+        margin-left: 8px;
+        border-radius: ${toString theme.ui.rounding}px;
+        font-size: 15px; /* Die Icons dürfen gerne etwas präsenter sein */
+        transition: all 0.3s ease;
+      }
+
+      /* Szenario A: Unauffällig, wenn man den Laptop normal nutzt */
+      #custom-display_mode.portable {
+        color: #${theme.colors.accent_secondary};
+        background-color: transparent;
+      }
+
+      /* Szenario B: Highlight! Beide Bildschirme aktiv */
+      #custom-display_mode.docked {
+        color: #${theme.colors.accent_primary};
+        background-color: #${theme.colors.inactive_border};
+      }
+
+      /* Szenario C: Alternativer Akzent, da der Laptop zugeklappt ist */
+      #custom-display_mode.docked-only {
+        color: #${theme.colors.bg};
+        background-color: #${theme.colors.accent_tertiary};
       }
     '';
   };

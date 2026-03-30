@@ -49,7 +49,20 @@ in {
       ];
 
       workspace = [
+        # Deine bisherigen Gaps für den Server/Dashboard-Workspace
         "name:Server, gapsout:${toString theme.ui.homepage.gaps_out}"
+        
+        # --- Das neue native Routing ---
+        # 1. Special Workspaces gehören auf DP-6
+        "name:System, monitor:DP-6"
+        "name:Server, monitor:DP-6"
+        
+        # 2. Reguläre Workspaces 1-5 gehören auf den Laptop
+        "1, monitor:eDP-1"
+        "2, monitor:eDP-1"
+        "3, monitor:eDP-1"
+        "4, monitor:eDP-1"
+        "5, monitor:eDP-1"
       ];
       # 4. Design & Layout (Verknüpft mit der neuen Theme-Engine)
       general = {
@@ -123,6 +136,7 @@ in {
         "$mod SHIFT, F, fullscreen,"
         "$mod, F, togglefloating,"
         "$mod SHIFT, E, exit,"
+        "$mod SHIFT, W, exec, systemctl --user restart waybar"
 
         "$mod, h, movefocus, l"
         "$mod, j, movefocus, d"
@@ -152,7 +166,7 @@ in {
 
       bindl = [
         ", switch:on:Lid Switch, exec, hyprctl keyword monitor \"eDP-1, disable\""
-        ", switch:off:Lid Switch, exec, hyprctl keyword monitor \"eDP-1, 1366x768@60, 0x0, 1\""
+        ", switch:off:Lid Switch, exec, hyprctl keyword monitor \"eDP-1, preferred, 0x1024, 1\""
       ];
     };
   };
