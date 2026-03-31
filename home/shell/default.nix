@@ -4,12 +4,9 @@
   # Alle CLI-Tools, die du primär in der Shell nutzt
   home.packages = with pkgs; [
     eza
-    zoxide
     ripgrep
     fd
     bottom
-    starship
-
     d2             # Modernes, schnelles Diagramming (perfekt für Nushell-Skripte)
     plantuml       # Klassische komplexe UMLs
     mermaid-cli    # Mermaid Graphen im Terminal rendern
@@ -17,12 +14,21 @@
     taskwarrior3
   ];
 
-  #programs.fastfetch = {
-  #  enable = true;
-  #};
-
   programs = {
-    # Nushell Konfiguration
+    # System-Informationen beim Shell-Start (jetzt sauber aktiviert)
+    fastfetch.enable = true;
+
+    # Yazi Dateimanager mit CWD-Support beim Beenden
+    yazi = {
+      enable = true;
+      enableNushellIntegration = true;
+    };
+
+    # Mächtige Autovervollständigung für Nushell
+    carapace = {
+      enable = true;
+      enableNushellIntegration = true;
+    };
     nushell = {
       enable = true;
       shellAliases = {
